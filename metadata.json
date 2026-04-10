@@ -1,0 +1,5 @@
+{
+  "name": "Alerta de Emergência",
+  "description": "Aplicativo de botão de pânico para grupos. Envie alertas instantâneos para todos os membros do seu grupo em caso de emergência.",
+  "requestFramePermissions": ["geolocation"]
+}
