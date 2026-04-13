@@ -11,8 +11,12 @@ export function AlertOverlay() {
 
   // Solicitar permissão para notificações do sistema quando o componente montar
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(e => console.log("Permissão de notificação ignorada:", e));
+      }
+    } catch (e) {
+      console.log("Erro ao solicitar permissão de notificação:", e);
     }
   }, []);
 
@@ -21,38 +25,76 @@ export function AlertOverlay() {
       const isFire = activeAlert.type === 'fire';
       
       // 1. Vibrar o celular
-      if ('vibrate' in navigator) {
-        navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
+      try {
+        if ('vibrate' in navigator) {
+          navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
+        }
+      } catch (e) {
+        console.log("Erro ao vibrar:", e);
       }
 
       // 2. Tocar som de sirene/alarme
-      if (!audioRef.current) {
-        // Usando um som de alarme de domínio público do Google
-        audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
-        audioRef.current.loop = true;
+      try {
+        if (!audioRef.current) {
+          // Usando um som de alarme de domínio público do Google
+          audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+          audioRef.current.loop = true;
+        }
+        // O navegador pode bloquear o autoplay se o usuário não tiver interagido com a página antes
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => console.log("Áudio bloqueado pelo navegador:", e));
+        }
+      } catch (e) {
+        console.log("Erro ao tocar áudio:", e);
       }
-      // O navegador pode bloquear o autoplay se o usuário não tiver interagido com a página antes
-      audioRef.current.play().catch(e => console.log("Áudio bloqueado pelo navegador:", e));
 
-      // 3. Mostrar notificação do sistema (aparece mesmo se o usuário estiver em outro app/aba, desde que o navegador esteja rodando)
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(isFire ? '🚨 ALERTA DE INCÊNDIO!' : '🚨 ALERTA DE EMERGÊNCIA!', {
-          body: `${activeAlert.triggeredBy.name} acionou um alerta no setor: ${activeAlert.triggeredBy.sector}`,
-          vibrate: [500, 200, 500],
-          requireInteraction: true
-        });
+      // 3. Mostrar notificação do sistema
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const title = isFire ? '🚨 ALERTA DE INCÊNDIO!' : '🚨 ALERTA DE EMERGÊNCIA!';
+          const options = {
+            body: `${activeAlert.triggeredBy?.name || 'Usuário'} acionou um alerta no setor: ${activeAlert.triggeredBy?.sector || 'Desconhecido'}`,
+            vibrate: [500, 200, 500],
+            requireInteraction: true
+          };
+
+          // Em celulares (especialmente Android/Chrome), new Notification pode falhar.
+          // O ideal é usar o Service Worker se disponível.
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification(title, options).catch(e => {
+                console.log("Erro ao mostrar notificação via SW:", e);
+                // Fallback
+                new Notification(title, options);
+              });
+            }).catch(() => {
+              new Notification(title, options);
+            });
+          } else {
+            new Notification(title, options);
+          }
+        }
+      } catch (e) {
+        console.log("Erro ao criar notificação:", e);
       }
     } else {
       // Parar o som se não houver alerta ativo
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+        try {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        } catch (e) {
+          console.log("Erro ao pausar áudio:", e);
+        }
       }
     }
 
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
+        try {
+          audioRef.current.pause();
+        } catch (e) {}
       }
     };
   }, [activeAlert]);
@@ -64,7 +106,7 @@ export function AlertOverlay() {
   const textColor = isFire ? 'text-orange-600' : 'text-red-600';
   const hoverColor = isFire ? 'hover:bg-orange-50' : 'hover:bg-red-50';
 
-  const canResolve = currentUser?.role === 'admin' || currentUser?.id === activeAlert.triggeredBy.id;
+  const canResolve = currentUser?.role === 'admin' || (activeAlert.triggeredBy && currentUser?.id === activeAlert.triggeredBy.id);
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${bgColor} animate-pulse-fast overflow-y-auto`}>
@@ -84,18 +126,20 @@ export function AlertOverlay() {
         <div className="bg-black/20 rounded-2xl p-6 backdrop-blur-sm w-full max-w-sm">
           <p className="text-white/80 text-sm mb-1">Acionado por:</p>
           <div className="flex items-center justify-center gap-3 mb-6">
-            <img src={activeAlert.triggeredBy.photo} alt="" className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
-            <p className="text-2xl font-bold text-white">{activeAlert.triggeredBy.name}</p>
+            {activeAlert.triggeredBy?.photo && (
+              <img src={activeAlert.triggeredBy.photo} alt="" className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
+            )}
+            <p className="text-2xl font-bold text-white">{activeAlert.triggeredBy?.name || 'Usuário Desconhecido'}</p>
           </div>
           
           <div className="grid grid-cols-2 gap-4 mb-4 text-left">
             <div className="bg-black/20 p-3 rounded-lg">
               <p className="text-white/60 text-xs">Setor do Usuário</p>
-              <p className="text-white font-medium">{activeAlert.triggeredBy.sector}</p>
+              <p className="text-white font-medium">{activeAlert.triggeredBy?.sector || 'N/A'}</p>
             </div>
             <div className="bg-black/20 p-3 rounded-lg">
               <p className="text-white/60 text-xs">Contato</p>
-              <p className="text-white font-medium">{activeAlert.triggeredBy.phone}</p>
+              <p className="text-white font-medium">{activeAlert.triggeredBy?.phone || 'N/A'}</p>
             </div>
           </div>
 

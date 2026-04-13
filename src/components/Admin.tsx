@@ -25,8 +25,8 @@ export function Admin() {
       alert.id,
       alert.type === 'emergency' ? 'Emergência' : 'Incêndio',
       alert.active ? 'Ativo' : 'Resolvido',
-      alert.triggeredBy.name,
-      alert.triggeredBy.sector,
+      alert.triggeredBy?.name || 'Desconhecido',
+      alert.triggeredBy?.sector || 'N/A',
       new Date(alert.timestamp).toLocaleString(),
       alert.resolvedAt ? new Date(alert.resolvedAt).toLocaleString() : '-'
     ]);
@@ -61,7 +61,7 @@ export function Admin() {
         Dados dos alertas:
         ${JSON.stringify(allEvents.map(e => ({
           tipo: e.type,
-          setor: e.triggeredBy.sector,
+          setor: e.triggeredBy?.sector || 'N/A',
           data: new Date(e.timestamp).toISOString()
         })))}
       `;
@@ -153,9 +153,9 @@ export function Admin() {
                 </div>
                 
                 <div className="bg-slate-900/50 rounded-lg p-3 text-sm">
-                  <p className="text-slate-300"><span className="text-slate-500">Por:</span> {alert.triggeredBy.name}</p>
-                  <p className="text-slate-300"><span className="text-slate-500">Setor:</span> {alert.triggeredBy.sector}</p>
-                  <p className="text-slate-300"><span className="text-slate-500">Contato:</span> {alert.triggeredBy.phone}</p>
+                  <p className="text-slate-300"><span className="text-slate-500">Por:</span> {alert.triggeredBy?.name || 'Usuário Desconhecido'}</p>
+                  <p className="text-slate-300"><span className="text-slate-500">Setor:</span> {alert.triggeredBy?.sector || 'N/A'}</p>
+                  <p className="text-slate-300"><span className="text-slate-500">Contato:</span> {alert.triggeredBy?.phone || 'N/A'}</p>
                 </div>
 
                 {alert.active && (

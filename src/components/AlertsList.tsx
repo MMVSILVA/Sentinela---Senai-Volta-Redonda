@@ -19,7 +19,7 @@ export function AlertsList() {
           <p className="text-slate-500 text-center py-8">Nenhum alerta registrado.</p>
         ) : (
           allEvents.map(alert => {
-            const canResolve = alert.active && (currentUser?.role === 'admin' || currentUser?.id === alert.triggeredBy.id);
+            const canResolve = alert.active && (currentUser?.role === 'admin' || (alert.triggeredBy && currentUser?.id === alert.triggeredBy.id));
             
             return (
               <div key={alert.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-col gap-3">
@@ -41,8 +41,8 @@ export function AlertsList() {
                 </div>
                 
                 <div className="bg-slate-900/50 rounded-lg p-3 text-sm space-y-1">
-                  <p className="text-slate-300"><span className="text-slate-500">Por:</span> {alert.triggeredBy.name}</p>
-                  <p className="text-slate-300"><span className="text-slate-500">Setor:</span> {alert.triggeredBy.sector}</p>
+                  <p className="text-slate-300"><span className="text-slate-500">Por:</span> {alert.triggeredBy?.name || 'Usuário Desconhecido'}</p>
+                  <p className="text-slate-300"><span className="text-slate-500">Setor:</span> {alert.triggeredBy?.sector || 'N/A'}</p>
                   {alert.specificLocation && (
                     <p className="text-white font-medium flex items-center gap-1 mt-2 bg-slate-800 p-2 rounded">
                       <MapPin className="w-4 h-4 text-red-400" />
