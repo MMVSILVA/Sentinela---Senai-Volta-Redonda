@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { db, isFirebaseConfigured } from '../lib/firebase';
-import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { db, auth, isFirebaseConfigured } from '../lib/firebase';
+import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
 
 export type UserRole = 'user' | 'admin';
 export type AlertType = 'emergency' | 'fire';
@@ -42,9 +43,12 @@ interface AppState {
   dismissedAlertIds: string[];
   contacts: Contact[];
   currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config';
+  localUsers: (User & { password?: string })[]; // Fallback local
   
-  login: (user: Omit<User, 'id'>) => void;
-  logout: () => void;
+  login: (email: string, pass: string) => Promise<void>;
+  register: (user: Omit<User, 'id'>, pass: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  logout: () => Promise<void>;
   setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config') => void;
   setAlerts: (alerts: Alert[]) => void;
   triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => void;
@@ -71,19 +75,59 @@ export const useStore = create<AppState>()(
       dismissedAlertIds: [],
       contacts: MOCK_CONTACTS,
       currentTab: 'home',
+      localUsers: [],
 
-      login: (userData) => {
-        const newUser: User = { 
-          ...userData, 
-          id: Math.random().toString(36).substr(2, 9) 
-        };
-        set({ 
-          currentUser: newUser,
-          currentTab: newUser.role === 'admin' ? 'admin' : 'home'
-        });
+      login: async (email, password) => {
+        if (isFirebaseConfigured && auth && db) {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            set({ currentUser: userData, currentTab: userData.role === 'admin' ? 'admin' : 'home' });
+          } else {
+            throw new Error("Perfil de usuário não encontrado.");
+          }
+        } else {
+          const user = get().localUsers.find(u => u.email === email && u.password === password);
+          if (user) {
+            const { password: _, ...userData } = user;
+            set({ currentUser: userData, currentTab: userData.role === 'admin' ? 'admin' : 'home' });
+          } else {
+            throw new Error("Email ou senha incorretos.");
+          }
+        }
       },
 
-      logout: () => set({ currentUser: null, currentTab: 'home', dismissedAlertIds: [] }),
+      register: async (userData, password) => {
+        if (isFirebaseConfigured && auth && db) {
+          const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
+          const newUser = { ...userData, id: userCredential.user.uid };
+          await setDoc(doc(db, 'users', newUser.id), newUser);
+          set({ currentUser: newUser, currentTab: newUser.role === 'admin' ? 'admin' : 'home' });
+        } else {
+          const newUser = { ...userData, id: Math.random().toString(36).substr(2, 9) };
+          set(state => ({
+            localUsers: [...state.localUsers, { ...newUser, password }],
+            currentUser: newUser,
+            currentTab: newUser.role === 'admin' ? 'admin' : 'home'
+          }));
+        }
+      },
+
+      resetPassword: async (email) => {
+        if (isFirebaseConfigured && auth) {
+          await sendPasswordResetEmail(auth, email);
+        } else {
+          throw new Error("O Firebase precisa estar configurado para recuperar a senha.");
+        }
+      },
+
+      logout: async () => {
+        if (isFirebaseConfigured && auth) {
+          await signOut(auth);
+        }
+        set({ currentUser: null, currentTab: 'home', dismissedAlertIds: [] });
+      },
 
       setTab: (tab) => set({ currentTab: tab }),
 
@@ -181,8 +225,9 @@ export const useStore = create<AppState>()(
       name: 'sentinela-storage',
       partialize: (state) => ({ 
         currentUser: state.currentUser, 
-        contacts: state.contacts 
-      }), // Only persist user and contacts
+        contacts: state.contacts,
+        localUsers: state.localUsers
+      }), // Only persist user, contacts and local auth fallback
     }
   )
 );
