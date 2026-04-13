@@ -1,5 +1,5 @@
-import React from 'react';
-import { useStore } from './store/useStore';
+import React, { useEffect } from 'react';
+import { useStore, Alert } from './store/useStore';
 import { Login } from './components/Login';
 import { Layout } from './components/Layout';
 import { Home } from './components/Home';
@@ -8,9 +8,23 @@ import { Contacts } from './components/Contacts';
 import { AlertsList } from './components/AlertsList';
 import { Config } from './components/Config';
 import { AlertOverlay } from './components/AlertOverlay';
+import { db, isFirebaseConfigured } from './lib/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 export default function App() {
-  const { currentUser, currentTab } = useStore();
+  const { currentUser, currentTab, setAlerts } = useStore();
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !db) return;
+
+    const q = query(collection(db, 'alerts'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const alertsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
+      setAlerts(alertsData);
+    });
+
+    return () => unsubscribe();
+  }, [setAlerts]);
 
   if (!currentUser) {
     return <Login />;

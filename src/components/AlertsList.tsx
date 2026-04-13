@@ -3,9 +3,9 @@ import { useStore } from '../store/useStore';
 import { AlertTriangle, Flame, CheckCircle2, MapPin } from 'lucide-react';
 
 export function AlertsList() {
-  const { activeAlerts, alertHistory, resolveAlert, currentUser } = useStore();
+  const { alerts, resolveAlert, currentUser } = useStore();
   
-  const allEvents = [...activeAlerts, ...alertHistory].sort((a, b) => b.timestamp - a.timestamp);
+  const allEvents = alerts;
 
   return (
     <div className="p-6">

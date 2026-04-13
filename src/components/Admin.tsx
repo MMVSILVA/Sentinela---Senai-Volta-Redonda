@@ -4,11 +4,11 @@ import { Download, BrainCircuit, AlertTriangle, Flame, CheckCircle2 } from 'luci
 import { GoogleGenAI } from '@google/genai';
 
 export function Admin() {
-  const { activeAlerts, alertHistory, resolveAlert } = useStore();
+  const { alerts, resolveAlert } = useStore();
   const [aiInsight, setAiInsight] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const allEvents = [...activeAlerts, ...alertHistory].sort((a, b) => b.timestamp - a.timestamp);
+  const allEvents = alerts;
 
   const handleDownloadReport = () => {
     const headers = ['ID', 'Tipo', 'Status', 'Acionado Por', 'Setor', 'Data/Hora', 'Resolvido Em'];

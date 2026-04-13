@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { db, isFirebaseConfigured } from '../lib/firebase';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 
 export type UserRole = 'user' | 'admin';
 export type AlertType = 'emergency' | 'fire';
@@ -35,8 +37,7 @@ export type Contact = {
 
 interface AppState {
   currentUser: User | null;
-  activeAlerts: Alert[];
-  alertHistory: Alert[];
+  alerts: Alert[];
   dismissedAlertIds: string[];
   contacts: Contact[];
   currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config';
@@ -44,6 +45,7 @@ interface AppState {
   login: (user: Omit<User, 'id'>) => void;
   logout: () => void;
   setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config') => void;
+  setAlerts: (alerts: Alert[]) => void;
   triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => void;
   resolveAlert: (alertId: string, notes?: string) => void;
   dismissAlert: (alertId: string) => void;
@@ -61,8 +63,7 @@ const MOCK_CONTACTS: Contact[] = [
 
 export const useStore = create<AppState>((set, get) => ({
   currentUser: null,
-  activeAlerts: [],
-  alertHistory: [],
+  alerts: [],
   dismissedAlertIds: [],
   contacts: MOCK_CONTACTS,
   currentTab: 'home',
@@ -82,32 +83,52 @@ export const useStore = create<AppState>((set, get) => ({
 
   setTab: (tab) => set({ currentTab: tab }),
 
-  triggerAlert: (type, location, specificLocation) => {
-    const { currentUser, activeAlerts } = get();
+  setAlerts: (alerts) => set({ alerts }),
+
+  triggerAlert: async (type, location, specificLocation) => {
+    const { currentUser, alerts } = get();
     if (!currentUser) return;
 
-    const newAlert: Alert = {
-      id: Math.random().toString(36).substr(2, 9),
+    const alertData = {
       type,
       triggeredBy: currentUser,
       timestamp: Date.now(),
       active: true,
-      location,
-      specificLocation
+      location: location || null,
+      specificLocation: specificLocation || null
     };
 
-    set({ activeAlerts: [...activeAlerts, newAlert] });
+    if (isFirebaseConfigured && db) {
+      try {
+        await addDoc(collection(db, 'alerts'), alertData);
+      } catch (error) {
+        console.error("Erro ao salvar alerta no Firebase:", error);
+      }
+    } else {
+      // Fallback local se o Firebase não estiver configurado
+      const newAlert = { ...alertData, id: Math.random().toString(36).substr(2, 9) } as Alert;
+      set({ alerts: [newAlert, ...alerts] });
+    }
   },
 
-  resolveAlert: (alertId, notes) => {
-    const { activeAlerts, alertHistory } = get();
-    const alertToResolve = activeAlerts.find(a => a.id === alertId);
+  resolveAlert: async (alertId, notes) => {
+    const { alerts } = get();
     
-    if (alertToResolve) {
-      const resolvedAlert = { ...alertToResolve, active: false, resolvedAt: Date.now(), notes };
+    if (isFirebaseConfigured && db) {
+      try {
+        const alertRef = doc(db, 'alerts', alertId);
+        await updateDoc(alertRef, {
+          active: false,
+          resolvedAt: Date.now(),
+          notes: notes || null
+        });
+      } catch (error) {
+        console.error("Erro ao resolver alerta no Firebase:", error);
+      }
+    } else {
+      // Fallback local
       set({
-        activeAlerts: activeAlerts.filter(a => a.id !== alertId),
-        alertHistory: [resolvedAlert, ...alertHistory]
+        alerts: alerts.map(a => a.id === alertId ? { ...a, active: false, resolvedAt: Date.now(), notes } : a)
       });
     }
   },

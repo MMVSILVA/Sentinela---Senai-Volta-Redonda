@@ -3,8 +3,9 @@ import { useStore } from '../store/useStore';
 import { AlertOctagon, Flame, Map, X, CheckCircle2 } from 'lucide-react';
 
 export function AlertOverlay() {
-  const { activeAlerts, resolveAlert, dismissedAlertIds, dismissAlert, currentUser } = useStore();
+  const { alerts, resolveAlert, dismissedAlertIds, dismissAlert, currentUser } = useStore();
 
+  const activeAlerts = alerts.filter(a => a.active);
   const activeAlert = activeAlerts.find(a => !dismissedAlertIds.includes(a.id));
 
   useEffect(() => {
