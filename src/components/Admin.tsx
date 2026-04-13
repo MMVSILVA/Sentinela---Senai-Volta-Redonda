@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Download, BrainCircuit, AlertTriangle, Flame, CheckCircle2 } from 'lucide-react';
+import { Download, BrainCircuit, AlertTriangle, Flame, CheckCircle2, Trash2 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 
 export function Admin() {
-  const { alerts, resolveAlert } = useStore();
+  const { alerts, resolveAlert, resetAlerts } = useStore();
   const [aiInsight, setAiInsight] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const allEvents = alerts;
+
+  const handleResetAlerts = async () => {
+    if (window.confirm("Tem certeza que deseja apagar TODO o histórico de alertas? Esta ação não pode ser desfeita.")) {
+      setIsResetting(true);
+      await resetAlerts();
+      setIsResetting(false);
+    }
+  };
 
   const handleDownloadReport = () => {
     const headers = ['ID', 'Tipo', 'Status', 'Acionado Por', 'Setor', 'Data/Hora', 'Resolvido Em'];
@@ -78,13 +87,13 @@ export function Admin() {
         <p className="text-slate-400">Visão geral de todas as ocorrências e alarmes.</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         <button 
           onClick={handleDownloadReport}
           className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl border border-slate-700 transition-colors"
         >
           <Download className="w-6 h-6 text-blue-400" />
-          <span className="text-sm font-medium">Baixar Relatório</span>
+          <span className="text-sm font-medium text-center">Baixar Relatório</span>
         </button>
         
         <button 
@@ -93,7 +102,16 @@ export function Admin() {
           className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
         >
           <BrainCircuit className="w-6 h-6 text-purple-400" />
-          <span className="text-sm font-medium">{isAnalyzing ? 'Analisando...' : 'Análise com IA'}</span>
+          <span className="text-sm font-medium text-center">{isAnalyzing ? 'Analisando...' : 'Análise com IA'}</span>
+        </button>
+
+        <button 
+          onClick={handleResetAlerts}
+          disabled={isResetting || allEvents.length === 0}
+          className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-red-900/50 text-white p-4 rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+        >
+          <Trash2 className="w-6 h-6 text-red-500" />
+          <span className="text-sm font-medium text-center">{isResetting ? 'Apagando...' : 'Resetar Alertas'}</span>
         </button>
       </div>
 

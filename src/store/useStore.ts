@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured } from '../lib/firebase';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
 
 export type UserRole = 'user' | 'admin';
 export type AlertType = 'emergency' | 'fire';
@@ -49,6 +50,7 @@ interface AppState {
   triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => void;
   resolveAlert: (alertId: string, notes?: string) => void;
   dismissAlert: (alertId: string) => void;
+  resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => void;
   addContact: (contact: Omit<Contact, 'id'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
@@ -61,103 +63,126 @@ const MOCK_CONTACTS: Contact[] = [
   { id: '3', name: 'Posto Médico', role: 'Emergência Médica', phone: '192', department: 'Saúde' },
 ];
 
-export const useStore = create<AppState>((set, get) => ({
-  currentUser: null,
-  alerts: [],
-  dismissedAlertIds: [],
-  contacts: MOCK_CONTACTS,
-  currentTab: 'home',
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      currentUser: null,
+      alerts: [],
+      dismissedAlertIds: [],
+      contacts: MOCK_CONTACTS,
+      currentTab: 'home',
 
-  login: (userData) => {
-    const newUser: User = { 
-      ...userData, 
-      id: Math.random().toString(36).substr(2, 9) 
-    };
-    set({ 
-      currentUser: newUser,
-      currentTab: newUser.role === 'admin' ? 'admin' : 'home'
-    });
-  },
-
-  logout: () => set({ currentUser: null, currentTab: 'home', dismissedAlertIds: [] }),
-
-  setTab: (tab) => set({ currentTab: tab }),
-
-  setAlerts: (alerts) => set({ alerts }),
-
-  triggerAlert: async (type, location, specificLocation) => {
-    const { currentUser, alerts } = get();
-    if (!currentUser) return;
-
-    const alertData = {
-      type,
-      triggeredBy: currentUser,
-      timestamp: Date.now(),
-      active: true,
-      location: location || null,
-      specificLocation: specificLocation || null
-    };
-
-    if (isFirebaseConfigured && db) {
-      try {
-        await addDoc(collection(db, 'alerts'), alertData);
-      } catch (error) {
-        console.error("Erro ao salvar alerta no Firebase:", error);
-      }
-    } else {
-      // Fallback local se o Firebase não estiver configurado
-      const newAlert = { ...alertData, id: Math.random().toString(36).substr(2, 9) } as Alert;
-      set({ alerts: [newAlert, ...alerts] });
-    }
-  },
-
-  resolveAlert: async (alertId, notes) => {
-    const { alerts } = get();
-    
-    if (isFirebaseConfigured && db) {
-      try {
-        const alertRef = doc(db, 'alerts', alertId);
-        await updateDoc(alertRef, {
-          active: false,
-          resolvedAt: Date.now(),
-          notes: notes || null
+      login: (userData) => {
+        const newUser: User = { 
+          ...userData, 
+          id: Math.random().toString(36).substr(2, 9) 
+        };
+        set({ 
+          currentUser: newUser,
+          currentTab: newUser.role === 'admin' ? 'admin' : 'home'
         });
-      } catch (error) {
-        console.error("Erro ao resolver alerta no Firebase:", error);
+      },
+
+      logout: () => set({ currentUser: null, currentTab: 'home', dismissedAlertIds: [] }),
+
+      setTab: (tab) => set({ currentTab: tab }),
+
+      setAlerts: (alerts) => set({ alerts }),
+
+      triggerAlert: async (type, location, specificLocation) => {
+        const { currentUser, alerts } = get();
+        if (!currentUser) return;
+
+        const alertData = {
+          type,
+          triggeredBy: currentUser,
+          timestamp: Date.now(),
+          active: true,
+          location: location || null,
+          specificLocation: specificLocation || null
+        };
+
+        if (isFirebaseConfigured && db) {
+          try {
+            await addDoc(collection(db, 'alerts'), alertData);
+          } catch (error) {
+            console.error("Erro ao salvar alerta no Firebase:", error);
+          }
+        } else {
+          const newAlert = { ...alertData, id: Math.random().toString(36).substr(2, 9) } as Alert;
+          set({ alerts: [newAlert, ...alerts] });
+        }
+      },
+
+      resolveAlert: async (alertId, notes) => {
+        const { alerts } = get();
+        
+        if (isFirebaseConfigured && db) {
+          try {
+            const alertRef = doc(db, 'alerts', alertId);
+            await updateDoc(alertRef, {
+              active: false,
+              resolvedAt: Date.now(),
+              notes: notes || null
+            });
+          } catch (error) {
+            console.error("Erro ao resolver alerta no Firebase:", error);
+          }
+        } else {
+          set({
+            alerts: alerts.map(a => a.id === alertId ? { ...a, active: false, resolvedAt: Date.now(), notes } : a)
+          });
+        }
+      },
+
+      dismissAlert: (alertId) => {
+        set((state) => ({ dismissedAlertIds: [...state.dismissedAlertIds, alertId] }));
+      },
+
+      resetAlerts: async () => {
+        if (isFirebaseConfigured && db) {
+          try {
+            const snapshot = await getDocs(collection(db, 'alerts'));
+            const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'alerts', d.id)));
+            await Promise.all(deletePromises);
+          } catch (error) {
+            console.error("Erro ao resetar alertas no Firebase:", error);
+          }
+        } else {
+          set({ alerts: [], dismissedAlertIds: [] });
+        }
+      },
+
+      updateProfile: (data) => {
+        set((state) => ({
+          currentUser: state.currentUser ? { ...state.currentUser, ...data } : null
+        }));
+      },
+
+      addContact: (contact) => {
+        set((state) => ({
+          contacts: [...state.contacts, { ...contact, id: Math.random().toString(36).substr(2, 9) }]
+        }));
+      },
+
+      updateContact: (id, data) => {
+        set((state) => ({
+          contacts: state.contacts.map(c => c.id === id ? { ...c, ...data } : c)
+        }));
+      },
+
+      deleteContact: (id) => {
+        set((state) => ({
+          contacts: state.contacts.filter(c => c.id !== id)
+        }));
       }
-    } else {
-      // Fallback local
-      set({
-        alerts: alerts.map(a => a.id === alertId ? { ...a, active: false, resolvedAt: Date.now(), notes } : a)
-      });
+    }),
+    {
+      name: 'sentinela-storage',
+      partialize: (state) => ({ 
+        currentUser: state.currentUser, 
+        contacts: state.contacts 
+      }), // Only persist user and contacts
     }
-  },
-
-  dismissAlert: (alertId) => {
-    set((state) => ({ dismissedAlertIds: [...state.dismissedAlertIds, alertId] }));
-  },
-
-  updateProfile: (data) => {
-    set((state) => ({
-      currentUser: state.currentUser ? { ...state.currentUser, ...data } : null
-    }));
-  },
-
-  addContact: (contact) => {
-    set((state) => ({
-      contacts: [...state.contacts, { ...contact, id: Math.random().toString(36).substr(2, 9) }]
-    }));
-  },
-
-  updateContact: (id, data) => {
-    set((state) => ({
-      contacts: state.contacts.map(c => c.id === id ? { ...c, ...data } : c)
-    }));
-  },
-
-  deleteContact: (id) => {
-    set((state) => ({
-      contacts: state.contacts.filter(c => c.id !== id)
-    }));
-  }
-}));
+  )
+);
