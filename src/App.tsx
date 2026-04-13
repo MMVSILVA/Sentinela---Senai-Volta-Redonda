@@ -8,6 +8,7 @@ import { Contacts } from './components/Contacts';
 import { AlertsList } from './components/AlertsList';
 import { Config } from './components/Config';
 import { AlertOverlay } from './components/AlertOverlay';
+import { InstallPWA } from './components/InstallPWA';
 import { db, isFirebaseConfigured } from './lib/firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
@@ -27,7 +28,12 @@ export default function App() {
   }, [setAlerts]);
 
   if (!currentUser) {
-    return <Login />;
+    return (
+      <>
+        <Login />
+        <InstallPWA />
+      </>
+    );
   }
 
   return (
@@ -41,6 +47,7 @@ export default function App() {
       </Layout>
       
       <AlertOverlay />
+      <InstallPWA />
     </>
   );
 }
