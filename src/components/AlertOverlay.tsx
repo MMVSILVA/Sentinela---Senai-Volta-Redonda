@@ -1,19 +1,60 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { AlertOctagon, Flame, Map, X, CheckCircle2 } from 'lucide-react';
 
 export function AlertOverlay() {
   const { alerts, resolveAlert, dismissedAlertIds, dismissAlert, currentUser } = useStore();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const activeAlerts = alerts.filter(a => a.active);
   const activeAlert = activeAlerts.find(a => !dismissedAlertIds.includes(a.id));
 
+  // Solicitar permissão para notificações do sistema quando o componente montar
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   useEffect(() => {
     if (activeAlert) {
+      const isFire = activeAlert.type === 'fire';
+      
+      // 1. Vibrar o celular
       if ('vibrate' in navigator) {
-        navigator.vibrate([500, 200, 500, 200, 500]);
+        navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
+      }
+
+      // 2. Tocar som de sirene/alarme
+      if (!audioRef.current) {
+        // Usando um som de alarme de domínio público do Google
+        audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+        audioRef.current.loop = true;
+      }
+      // O navegador pode bloquear o autoplay se o usuário não tiver interagido com a página antes
+      audioRef.current.play().catch(e => console.log("Áudio bloqueado pelo navegador:", e));
+
+      // 3. Mostrar notificação do sistema (aparece mesmo se o usuário estiver em outro app/aba, desde que o navegador esteja rodando)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(isFire ? '🚨 ALERTA DE INCÊNDIO!' : '🚨 ALERTA DE EMERGÊNCIA!', {
+          body: `${activeAlert.triggeredBy.name} acionou um alerta no setor: ${activeAlert.triggeredBy.sector}`,
+          vibrate: [500, 200, 500],
+          requireInteraction: true
+        });
+      }
+    } else {
+      // Parar o som se não houver alerta ativo
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
     }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
   }, [activeAlert]);
 
   if (!activeAlert) return null;
