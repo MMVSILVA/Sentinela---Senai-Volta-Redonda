@@ -9,6 +9,7 @@ import { AlertsList } from './components/AlertsList';
 import { Config } from './components/Config';
 import { AlertOverlay } from './components/AlertOverlay';
 import { InstallPWA } from './components/InstallPWA';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { db, isFirebaseConfigured } from './lib/firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
@@ -32,6 +33,7 @@ export default function App() {
       <>
         <Login />
         <InstallPWA />
+        <UpdatePrompt />
       </>
     );
   }
@@ -48,6 +50,7 @@ export default function App() {
       
       <AlertOverlay />
       <InstallPWA />
+      <UpdatePrompt />
     </>
   );
 }

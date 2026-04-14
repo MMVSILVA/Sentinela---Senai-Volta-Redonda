@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
   console.log('[Service Worker] Install');
-  self.skipWaiting();
+  // Não chamamos skipWaiting automaticamente para podermos mostrar o aviso de atualização
 });
 
 self.addEventListener('activate', (e) => {
@@ -10,4 +10,10 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   // Minimal fetch listener to pass PWA installability criteria
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

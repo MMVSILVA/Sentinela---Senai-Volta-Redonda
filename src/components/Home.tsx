@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useStore, AlertType } from '../store/useStore';
-import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus } from 'lucide-react';
+import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Home() {
@@ -172,11 +172,16 @@ export function Home() {
 
       <div className="mt-auto pt-8">
         <h3 className="text-slate-400 text-sm font-medium mb-3 text-center">Números de Emergência</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <a href="tel:193" className="flex flex-col items-center justify-center gap-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl p-3 transition-colors">
             <Flame className="w-6 h-6 text-red-500" />
             <span className="text-xs text-red-400 font-medium">Bombeiros</span>
             <span className="text-lg font-bold text-red-500">193</span>
+          </a>
+          <a href="tel:192" className="flex flex-col items-center justify-center gap-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl p-3 transition-colors">
+            <Ambulance className="w-6 h-6 text-emerald-500" />
+            <span className="text-xs text-emerald-400 font-medium">SAMU</span>
+            <span className="text-lg font-bold text-emerald-500">192</span>
           </a>
           <a href="tel:190" className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl p-3 transition-colors">
             <ShieldAlert className="w-6 h-6 text-blue-500" />
