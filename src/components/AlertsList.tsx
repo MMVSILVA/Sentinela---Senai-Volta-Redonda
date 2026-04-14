@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { AlertTriangle, Flame, CheckCircle2, MapPin } from 'lucide-react';
+import { AlertTriangle, Flame, CheckCircle2, MapPin, Plus } from 'lucide-react';
 
 export function AlertsList() {
   const { alerts, resolveAlert, currentUser } = useStore();
@@ -25,12 +25,12 @@ export function AlertsList() {
               <div key={alert.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-col gap-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${alert.type === 'emergency' ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'}`}>
-                      {alert.type === 'emergency' ? <AlertTriangle className="w-5 h-5" /> : <Flame className="w-5 h-5" />}
+                    <div className={`p-2 rounded-lg ${alert.type === 'emergency' ? 'bg-red-500/20 text-red-500' : alert.type === 'firstaid' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                      {alert.type === 'emergency' ? <AlertTriangle className="w-5 h-5" /> : alert.type === 'firstaid' ? <Plus className="w-5 h-5" strokeWidth={3} /> : <Flame className="w-5 h-5" />}
                     </div>
                     <div>
                       <h4 className="text-white font-medium">
-                        {alert.type === 'emergency' ? 'Emergência' : 'Incêndio'}
+                        {alert.type === 'emergency' ? 'Emergência' : alert.type === 'firstaid' ? 'Primeiros Socorros' : 'Incêndio'}
                       </h4>
                       <p className="text-xs text-slate-400">{new Date(alert.timestamp).toLocaleString()}</p>
                     </div>

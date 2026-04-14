@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useStore, AlertType } from '../store/useStore';
-import { AlertCircle, Flame, Phone, ShieldAlert, Siren } from 'lucide-react';
+import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Home() {
@@ -92,7 +92,7 @@ export function Home() {
           Pressione e segure para ativar
         </p>
 
-        <div className="flex items-center justify-center gap-8 w-full max-w-md">
+        <div className="flex items-center justify-center gap-6 w-full max-w-md flex-wrap">
           <div className="flex flex-col items-center gap-4">
             <button
               onMouseDown={() => startPress('emergency')}
@@ -103,11 +103,11 @@ export function Home() {
               className="relative group"
             >
               <div className={cn(
-                "w-36 h-36 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
+                "w-28 h-28 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-red-500 to-red-700",
                 pressingType === 'emergency' ? "scale-95" : "hover:scale-105"
               )}>
-                <AlertCircle className="w-16 h-16 text-white" />
+                <AlertCircle className="w-12 h-12 text-white" />
               </div>
               {pressingType === 'emergency' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
@@ -115,7 +115,7 @@ export function Home() {
                 </svg>
               )}
             </button>
-            <span className="text-red-400 font-semibold">Emergência</span>
+            <span className="text-red-400 font-semibold text-sm">Emergência</span>
           </div>
 
           <div className="flex flex-col items-center gap-4">
@@ -128,11 +128,11 @@ export function Home() {
               className="relative group"
             >
               <div className={cn(
-                "w-32 h-32 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
+                "w-28 h-28 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-orange-400 to-orange-600",
                 pressingType === 'fire' ? "scale-95" : "hover:scale-105"
               )}>
-                <Flame className="w-14 h-14 text-white" />
+                <Flame className="w-12 h-12 text-white" />
               </div>
               {pressingType === 'fire' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
@@ -140,7 +140,32 @@ export function Home() {
                 </svg>
               )}
             </button>
-            <span className="text-orange-400 font-semibold">Incêndio</span>
+            <span className="text-orange-400 font-semibold text-sm">Incêndio</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onMouseDown={() => startPress('firstaid')}
+              onMouseUp={stopPress}
+              onMouseLeave={stopPress}
+              onTouchStart={() => startPress('firstaid')}
+              onTouchEnd={stopPress}
+              className="relative group"
+            >
+              <div className={cn(
+                "w-28 h-28 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
+                "bg-gradient-to-br from-emerald-500 to-emerald-700",
+                pressingType === 'firstaid' ? "scale-95" : "hover:scale-105"
+              )}>
+                <Plus className="w-14 h-14 text-white" strokeWidth={3} />
+              </div>
+              {pressingType === 'firstaid' && (
+                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="4" strokeDasharray={`${progress * 3} 300`} className="transition-all duration-75 ease-linear" />
+                </svg>
+              )}
+            </button>
+            <span className="text-emerald-400 font-semibold text-sm">Prim. Socorros</span>
           </div>
         </div>
       </div>

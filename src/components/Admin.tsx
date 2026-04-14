@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Download, BrainCircuit, AlertTriangle, Flame, CheckCircle2, Trash2 } from 'lucide-react';
+import { Download, BrainCircuit, AlertTriangle, Flame, CheckCircle2, Trash2, Plus } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 
 export function Admin() {
@@ -23,7 +23,7 @@ export function Admin() {
     const headers = ['ID', 'Tipo', 'Status', 'Acionado Por', 'Setor', 'Data/Hora', 'Resolvido Em'];
     const rows = allEvents.map(alert => [
       alert.id,
-      alert.type === 'emergency' ? 'Emergência' : 'Incêndio',
+      alert.type === 'emergency' ? 'Emergência' : alert.type === 'firstaid' ? 'Primeiros Socorros' : 'Incêndio',
       alert.active ? 'Ativo' : 'Resolvido',
       alert.triggeredBy?.name || 'Desconhecido',
       alert.triggeredBy?.sector || 'N/A',
@@ -137,12 +137,12 @@ export function Admin() {
               <div key={alert.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-col gap-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${alert.type === 'emergency' ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'}`}>
-                      {alert.type === 'emergency' ? <AlertTriangle className="w-5 h-5" /> : <Flame className="w-5 h-5" />}
+                    <div className={`p-2 rounded-lg ${alert.type === 'emergency' ? 'bg-red-500/20 text-red-500' : alert.type === 'firstaid' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                      {alert.type === 'emergency' ? <AlertTriangle className="w-5 h-5" /> : alert.type === 'firstaid' ? <Plus className="w-5 h-5" strokeWidth={3} /> : <Flame className="w-5 h-5" />}
                     </div>
                     <div>
                       <h4 className="text-white font-medium">
-                        {alert.type === 'emergency' ? 'Emergência Médica/Geral' : 'Foco de Incêndio'}
+                        {alert.type === 'emergency' ? 'Emergência Médica/Geral' : alert.type === 'firstaid' ? 'Primeiros Socorros' : 'Foco de Incêndio'}
                       </h4>
                       <p className="text-xs text-slate-400">{new Date(alert.timestamp).toLocaleString()}</p>
                     </div>

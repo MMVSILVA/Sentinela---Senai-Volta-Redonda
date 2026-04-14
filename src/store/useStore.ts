@@ -5,7 +5,7 @@ import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc, setDoc, getDoc 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
 
 export type UserRole = 'user' | 'admin';
-export type AlertType = 'emergency' | 'fire';
+export type AlertType = 'emergency' | 'fire' | 'firstaid';
 
 export type User = {
   id: string;
@@ -62,9 +62,27 @@ interface AppState {
 }
 
 const MOCK_CONTACTS: Contact[] = [
-  { id: '1', name: 'Carlos Silva', role: 'Presidente CIPA', phone: '(11) 98888-1111', department: 'Segurança do Trabalho' },
-  { id: '2', name: 'Ana Paula', role: 'Brigadista Líder', phone: '(11) 98888-2222', department: 'Operações' },
-  { id: '3', name: 'Posto Médico', role: 'Emergência Médica', phone: '192', department: 'Saúde' },
+  // CIPA
+  { id: '1', name: 'Patrícia', role: 'Presidente', phone: '-', department: 'CIPA' },
+  { id: '2', name: 'Aline', role: 'Vice Presidente', phone: '-', department: 'CIPA' },
+  { id: '3', name: 'Eduardo', role: 'Secretário', phone: '-', department: 'CIPA' },
+  { id: '4', name: 'Joel', role: 'Suplente', phone: '-', department: 'CIPA' },
+  
+  // Brigadistas
+  { id: '5', name: 'Tatiane', role: 'Coordenadora ADM', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '6', name: 'Wesley', role: 'Líder EP', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '7', name: 'Acristei', role: 'Brigadista ADM', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '8', name: 'Charles', role: 'Brigadista EB', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '9', name: 'Karen', role: 'Brigadista EP', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '10', name: 'Márcia', role: 'Brigadista EP', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '11', name: 'Tatiana', role: 'Brigadista EB', phone: '-', department: 'Brigada de Incêndio' },
+  { id: '12', name: 'Thais', role: 'Brigadista ADM', phone: '-', department: 'Brigada de Incêndio' },
+
+  // Guardiões da Integridade e Risco
+  { id: '13', name: 'Carolina Arieira', role: 'Guardiã de Integridade', phone: '-', department: 'Guardiões de Risco e Integridade' },
+  { id: '14', name: 'Marilia Brito', role: 'Guardiã de Integridade', phone: '-', department: 'Guardiões de Risco e Integridade' },
+  { id: '15', name: 'Paola Silva', role: 'Guardiã de Risco', phone: '-', department: 'Guardiões de Risco e Integridade' },
+  { id: '16', name: 'Glenda Ribeiro', role: 'Guardiã de Risco', phone: '-', department: 'Guardiões de Risco e Integridade' },
 ];
 
 export const useStore = create<AppState>()(

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { AlertOctagon, Flame, Map, X, CheckCircle2 } from 'lucide-react';
+import { AlertOctagon, Flame, Map, X, CheckCircle2, Plus } from 'lucide-react';
 
 export function AlertOverlay() {
   const { alerts, resolveAlert, dismissedAlertIds, dismissAlert, currentUser } = useStore();
@@ -23,6 +23,7 @@ export function AlertOverlay() {
   useEffect(() => {
     if (activeAlert) {
       const isFire = activeAlert.type === 'fire';
+      const isFirstAid = activeAlert.type === 'firstaid';
       
       // 1. Vibrar o celular
       try {
@@ -52,7 +53,7 @@ export function AlertOverlay() {
       // 3. Mostrar notificação do sistema
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
-          const title = isFire ? '🚨 ALERTA DE INCÊNDIO!' : '🚨 ALERTA DE EMERGÊNCIA!';
+          const title = isFire ? '🚨 ALERTA DE INCÊNDIO!' : isFirstAid ? '🚨 PRIMEIROS SOCORROS!' : '🚨 ALERTA DE EMERGÊNCIA!';
           const options = {
             body: `${activeAlert.triggeredBy?.name || 'Usuário'} acionou um alerta no setor: ${activeAlert.triggeredBy?.sector || 'Desconhecido'}`,
             vibrate: [500, 200, 500],
@@ -102,9 +103,10 @@ export function AlertOverlay() {
   if (!activeAlert) return null;
 
   const isFire = activeAlert.type === 'fire';
-  const bgColor = isFire ? 'bg-orange-600' : 'bg-red-600';
-  const textColor = isFire ? 'text-orange-600' : 'text-red-600';
-  const hoverColor = isFire ? 'hover:bg-orange-50' : 'hover:bg-red-50';
+  const isFirstAid = activeAlert.type === 'firstaid';
+  const bgColor = isFire ? 'bg-orange-600' : isFirstAid ? 'bg-emerald-600' : 'bg-red-600';
+  const textColor = isFire ? 'text-orange-600' : isFirstAid ? 'text-emerald-600' : 'text-red-600';
+  const hoverColor = isFire ? 'hover:bg-orange-50' : isFirstAid ? 'hover:bg-emerald-50' : 'hover:bg-red-50';
 
   const canResolve = currentUser?.role === 'admin' || (activeAlert.triggeredBy && currentUser?.id === activeAlert.triggeredBy.id);
 
@@ -114,13 +116,15 @@ export function AlertOverlay() {
         <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-6 animate-bounce shrink-0">
           {isFire ? (
             <Flame className="w-14 h-14 text-white" />
+          ) : isFirstAid ? (
+            <Plus className="w-14 h-14 text-white" strokeWidth={3} />
           ) : (
             <AlertOctagon className="w-14 h-14 text-white" />
           )}
         </div>
         
         <h1 className="text-3xl font-black text-white uppercase tracking-widest mb-4">
-          {isFire ? 'Incêndio!' : 'Emergência!'}
+          {isFire ? 'Incêndio!' : isFirstAid ? 'Socorro Médico!' : 'Emergência!'}
         </h1>
         
         <div className="bg-black/20 rounded-2xl p-6 backdrop-blur-sm w-full max-w-sm">
