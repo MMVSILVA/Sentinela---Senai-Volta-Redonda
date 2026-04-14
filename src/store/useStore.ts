@@ -241,6 +241,14 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'sentinela-storage',
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Update contacts to the new list, keeping user and localUsers intact
+          persistedState.contacts = MOCK_CONTACTS;
+        }
+        return persistedState as AppState;
+      },
       partialize: (state) => ({ 
         currentUser: state.currentUser, 
         contacts: state.contacts,
