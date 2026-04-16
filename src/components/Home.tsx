@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useStore, AlertType } from '../store/useStore';
 import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { NotificationPermission } from './NotificationPermission';
 
 export function Home() {
   const { currentUser, triggerAlert } = useStore();
@@ -62,6 +63,9 @@ export function Home() {
 
   return (
     <div className="flex flex-col h-full p-6">
+      <div className="-mx-6 -mt-6 mb-6">
+        <NotificationPermission />
+      </div>
       <header className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
         <img 
           src={currentUser.photo} 

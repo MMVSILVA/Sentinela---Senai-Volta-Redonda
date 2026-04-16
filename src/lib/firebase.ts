@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
+import { getMessaging } from 'firebase/messaging';
 
 // O USUÁRIO DEVE SUBSTITUIR ISSO PELAS CREDENCIAIS DO FIREBASE DELE
 // Para obter essas chaves, crie um projeto no Firebase Console (https://console.firebase.google.com/)
@@ -23,3 +24,4 @@ export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const db = app ? getFirestore(app) : null;
 export const auth = app ? getAuth(app) : null;
 export const analytics = app && firebaseConfig.measurementId ? getAnalytics(app) : null;
+export const messaging = app ? getMessaging(app) : null;
