@@ -11,12 +11,30 @@ export function NotificationPermission() {
 
   useEffect(() => {
     if ('Notification' in window) {
-      setPermission(Notification.permission);
+      const currentPerm = Notification.permission;
+      setPermission(currentPerm);
+
+      // Se já tem permissão, vamos tentar pegar o token silenciosamente em background
+      if (currentPerm === 'granted' && isFirebaseConfigured && messaging && auth?.currentUser) {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+          getToken(messaging, {
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc',
+            serviceWorkerRegistration: registration
+          }).then((token) => {
+            if (token) {
+              setFcmToken(token);
+              updateDoc(doc(db, 'users', auth.currentUser!.uid), {
+                fcmToken: token
+              }).catch(console.error);
+            }
+          }).catch(console.error);
+        }).catch(console.error);
+      }
     }
-  }, []);
+  }, [auth?.currentUser]);
 
   const requestPermission = async () => {
-    if (!isFirebaseConfigured || !messaging || !auth.currentUser) {
+    if (!isFirebaseConfigured || !messaging || !auth?.currentUser) {
       alert("Firebase não está configurado ou usuário não logado.");
       return;
     }
@@ -55,7 +73,7 @@ export function NotificationPermission() {
     }
   };
 
-  if (permission === 'granted' && fcmToken) return null; // Já possui permissão e token salvo
+  if (permission === 'granted') return null; // Não exibir se já tiver permissão
 
   return (
     <div className="bg-slate-800 p-4 border-b border-slate-700 w-full animate-in slide-in-from-top flex flex-col gap-3">
@@ -86,11 +104,6 @@ export function NotificationPermission() {
           )}
         </button>
       )}
-
-      <div className="flex items-center gap-2 text-[10px] text-slate-500 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
-        <Info className="w-4 h-4 shrink-0" />
-        <span>O Firebase Cloud Messaging (FCM) requer configuração adicional no Console do Firebase (VAPID Key e Cloud Functions) para funcionar 100%.</span>
-      </div>
     </div>
   );
 }
