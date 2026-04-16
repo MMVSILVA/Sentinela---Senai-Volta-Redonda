@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Camera, Upload, Save, LogOut } from 'lucide-react';
+import { APP_VERSION } from '../lib/version';
 
 export function Config() {
   const { currentUser, updateProfile, logout } = useStore();
@@ -126,6 +127,10 @@ export function Config() {
           <LogOut className="w-5 h-5" />
           Sair do Aplicativo
         </button>
+      </div>
+
+      <div className="mt-8 text-center">
+        <p className="text-slate-500 text-xs">Versão do App: {APP_VERSION}</p>
       </div>
     </div>
   );
