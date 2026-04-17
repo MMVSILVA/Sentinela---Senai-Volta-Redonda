@@ -9,19 +9,16 @@ export function InstallPWA() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Detect iOS
+    // Detect iOS more reliably
     const ua = window.navigator.userAgent;
-    const webkit = !!ua.match(/WebKit/i);
-    const isIPad = !!ua.match(/iPad/i);
-    const isIPhone = !!ua.match(/iPhone/i);
-    const isIOSMobile = isIPad || isIPhone;
-    const isSafari = isIOSMobile && webkit && !ua.match(/CriOS/i); // Not Chrome on iOS
+    const isIOSMobile = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = isIOSMobile && /WebKit/i.test(ua) && !/CriOS/i.test(ua);
     
     // Detect if already installed (standalone)
     const standalone = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in window.navigator && (window.navigator as any).standalone);
     setIsStandalone(standalone);
 
-    if (isSafari && !standalone) {
+    if (isIOSMobile && !standalone) {
       setIsIOS(true);
       setSupportsPWA(true);
     }

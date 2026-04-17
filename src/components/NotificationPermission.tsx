@@ -8,8 +8,17 @@ export function NotificationPermission() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(true);
 
   useEffect(() => {
+    const ua = window.navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(ios);
+    
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in window.navigator && (window.navigator as any).standalone);
+    setIsStandalone(standalone);
+
     if ('Notification' in window) {
       const currentPerm = Notification.permission;
       setPermission(currentPerm);
@@ -74,6 +83,24 @@ export function NotificationPermission() {
   };
 
   if (permission === 'granted') return null; // Não exibir se já tiver permissão
+
+  if (isIOS && !isStandalone) {
+    return (
+      <div className="bg-amber-500/10 p-4 border-b border-amber-500/20 w-full animate-in slide-in-from-top flex flex-col gap-3">
+        <div className="flex gap-4 items-start">
+          <div className="bg-amber-500/20 p-3 rounded-full text-amber-500">
+            <Info className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-bold text-sm">Notificações no iPhone</h3>
+            <p className="text-slate-400 text-xs mt-1">
+              Para receber alertas da Sentinela no iPhone, você precisa primeiro <strong>Adicionar à Tela de Início</strong> e abrir o aplicativo por lá.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-800 p-4 border-b border-slate-700 w-full animate-in slide-in-from-top flex flex-col gap-3">
