@@ -55,7 +55,7 @@ export function AlertOverlay() {
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
           const title = isFire ? '🚨 INCÊNDIO! - ALERTA MÁXIMO' : isFirstAid ? '🚨 PRIMEIROS SOCORROS!' : '🚨 ALERTA DE EMERGÊNCIA!';
-          const options: NotificationOptions = {
+          const options: any = {
             body: `${activeAlert.triggeredBy?.name || 'Usuário'} acionou um alerta no setor: ${activeAlert.triggeredBy?.sector || 'Desconhecido'}`,
             icon: 'https://placehold.co/192x192/ffffff/004a99.png?text=S',
             badge: 'https://placehold.co/192x192/ffffff/004a99.png?text=S',
