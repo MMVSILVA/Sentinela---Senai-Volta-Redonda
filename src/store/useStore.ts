@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { db, auth, isFirebaseConfigured } from '../lib/firebase';
+import { db, auth, isFirebaseConfigured, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
 
@@ -38,9 +38,18 @@ export type Contact = {
   department: string;
 };
 
+export type Message = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: number;
+};
+
 interface AppState {
   user: User | null;
   alerts: Alert[];
+  messages: Record<string, Message[]>;
   dismissedAlertIds: string[];
   contacts: Contact[];
   currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config';
@@ -58,6 +67,8 @@ interface AppState {
   triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => void;
   resolveAlert: (alertId: string, notes?: string) => void;
   dismissAlert: (alertId: string) => void;
+  sendMessage: (alertId: string, text: string) => Promise<void>;
+  subscribeToAlertMessages: (alertId: string) => () => void;
   resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => void;
   addContact: (contact: Omit<Contact, 'id'>) => void;
@@ -94,6 +105,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       user: null,
       alerts: [],
+      messages: {},
       dismissedAlertIds: [],
       contacts: MOCK_CONTACTS,
       currentTab: 'home',
@@ -114,33 +126,51 @@ export const useStore = create<AppState>()(
         if (get().initialized) return;
 
         if (isFirebaseConfigured && auth && db) {
+          let unsubscribeAlerts: (() => void) | null = null;
+
           auth.onAuthStateChanged(async (firebaseUser) => {
             if (firebaseUser) {
+              const path = `users/${firebaseUser.uid}`;
               try {
                 const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (userDoc.exists()) {
                   const userData = userDoc.data() as User;
                   set({ user: userData, initialized: true });
+
+                  // Subscribe to alerts ONLY when user is authenticated
+                  if (!unsubscribeAlerts) {
+                    unsubscribeAlerts = onSnapshot(collection(db, 'alerts'), (snapshot) => {
+                      const alerts = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                      })) as Alert[];
+                      set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp) });
+                    }, (error) => {
+                      // Se der erro de permissão aqui, geralmente é porque o user deslogou ou mudou
+                      console.error("Alerts sync error:", error);
+                      if (error.code !== 'permission-denied') {
+                        handleFirestoreError(error, OperationType.GET, 'alerts');
+                      }
+                    });
+                  }
                 } else {
                   // Se o usuário autenticou mas não tem perfil, limpa o auth
                   set({ user: null, initialized: true });
+                  if (unsubscribeAlerts) {
+                    unsubscribeAlerts();
+                    unsubscribeAlerts = null;
+                  }
                 }
               } catch (error) {
-                console.error("Error fetching user profile:", error);
-                set({ user: null, initialized: true });
+                handleFirestoreError(error, OperationType.GET, path);
               }
             } else {
-              set({ user: null, initialized: true });
+              set({ user: null, initialized: true, alerts: [] });
+              if (unsubscribeAlerts) {
+                unsubscribeAlerts();
+                unsubscribeAlerts = null;
+              }
             }
-          });
-
-          // Subscribe to alerts
-          onSnapshot(collection(db, 'alerts'), (snapshot) => {
-            const alerts = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            })) as Alert[];
-            set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp) });
           });
         } else {
           set({ initialized: true });
@@ -152,12 +182,17 @@ export const useStore = create<AppState>()(
         try {
           if (isFirebaseConfigured && auth && db) {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as User;
-              set({ user: userData, currentTab: userData.role === 'admin' ? 'admin' : 'home' });
-            } else {
-              throw new Error("Perfil de usuário não encontrado no banco de dados.");
+            const path = `users/${userCredential.user.uid}`;
+            try {
+              const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+              if (userDoc.exists()) {
+                const userData = userDoc.data() as User;
+                set({ user: userData, currentTab: userData.role === 'admin' ? 'admin' : 'home' });
+              } else {
+                throw new Error("Perfil de usuário não encontrado no banco de dados.");
+              }
+            } catch (error) {
+              handleFirestoreError(error, OperationType.GET, path);
             }
           } else {
             const foundUser = get().localUsers.find(u => u.email === email && u.password === password);
@@ -179,8 +214,13 @@ export const useStore = create<AppState>()(
           if (isFirebaseConfigured && auth && db) {
             const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
             const newUser = { ...userData, id: userCredential.user.uid };
-            await setDoc(doc(db, 'users', newUser.id), newUser);
-            set({ user: newUser, currentTab: newUser.role === 'admin' ? 'admin' : 'home' });
+            const path = `users/${newUser.id}`;
+            try {
+              await setDoc(doc(db, 'users', newUser.id), newUser);
+              set({ user: newUser, currentTab: newUser.role === 'admin' ? 'admin' : 'home' });
+            } catch (error) {
+              handleFirestoreError(error, OperationType.WRITE, path);
+            }
           } else {
             const newUser = { ...userData, id: Math.random().toString(36).substr(2, 9) };
             set(state => ({
@@ -196,7 +236,11 @@ export const useStore = create<AppState>()(
 
       resetPassword: async (email) => {
         if (isFirebaseConfigured && auth) {
-          await sendPasswordResetEmail(auth, email);
+          try {
+            await sendPasswordResetEmail(auth, email);
+          } catch (error) {
+            handleFirestoreError(error, OperationType.WRITE, 'resetPassword');
+          }
         } else {
           throw new Error("Firebase não configurado.");
         }
@@ -230,7 +274,7 @@ export const useStore = create<AppState>()(
           try {
             await addDoc(collection(db, 'alerts'), alertData);
           } catch (error) {
-            console.error("Erro ao salvar alerta:", error);
+            handleFirestoreError(error, OperationType.WRITE, 'alerts');
           }
         } else {
           const newAlert = { ...alertData, id: Math.random().toString(36).substr(2, 9) } as Alert;
@@ -242,6 +286,7 @@ export const useStore = create<AppState>()(
         const { alerts } = get();
         
         if (isFirebaseConfigured && db) {
+          const path = `alerts/${alertId}`;
           try {
             const alertRef = doc(db, 'alerts', alertId);
             await updateDoc(alertRef, {
@@ -250,7 +295,7 @@ export const useStore = create<AppState>()(
               notes: notes || null
             });
           } catch (error) {
-            console.error("Erro ao resolver alerta:", error);
+            handleFirestoreError(error, OperationType.UPDATE, path);
           }
         } else {
           set({
@@ -263,6 +308,48 @@ export const useStore = create<AppState>()(
         set((state) => ({ dismissedAlertIds: [...state.dismissedAlertIds, alertId] }));
       },
 
+      sendMessage: async (alertId: string, text: string) => {
+        const { user } = get();
+        if (!user || !isFirebaseConfigured || !db) return;
+
+        const messagePath = `alerts/${alertId}/messages`;
+        try {
+          await addDoc(collection(db, 'alerts', alertId, 'messages'), {
+            senderId: user.id,
+            senderName: user.name,
+            text,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, messagePath);
+        }
+      },
+
+      subscribeToAlertMessages: (alertId: string) => {
+        if (!isFirebaseConfigured || !db) return () => {};
+
+        const messagesPath = `alerts/${alertId}/messages`;
+        const q = collection(db, 'alerts', alertId, 'messages');
+        
+        return onSnapshot(q, (snapshot) => {
+          const newMessages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Message[];
+          
+          set(state => ({
+            messages: {
+              ...state.messages,
+              [alertId]: newMessages.sort((a, b) => a.timestamp - b.timestamp)
+            }
+          }));
+        }, (error) => {
+          if (error.code !== 'permission-denied') {
+            handleFirestoreError(error, OperationType.GET, messagesPath);
+          }
+        });
+      },
+
       resetAlerts: async () => {
         if (isFirebaseConfigured && db) {
           try {
@@ -270,7 +357,7 @@ export const useStore = create<AppState>()(
             const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'alerts', d.id)));
             await Promise.all(deletePromises);
           } catch (error) {
-            console.error("Erro ao deletar alertas:", error);
+            handleFirestoreError(error, OperationType.DELETE, 'alerts');
           }
         } else {
           set({ alerts: [], dismissedAlertIds: [] });

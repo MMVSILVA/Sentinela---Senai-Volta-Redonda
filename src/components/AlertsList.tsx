@@ -1,10 +1,12 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { AlertTriangle, Flame, CheckCircle2, MapPin, Plus, Zap, Lock } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AlertTriangle, Flame, CheckCircle2, MapPin, Plus, Zap, Lock, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Chat } from './Chat';
 
 export function AlertsList() {
   const { alerts, resolveAlert, user } = useStore();
+  const [expandedAlertId, setExpandedAlertId] = React.useState<string | null>(null);
   
   const allEvents = alerts;
 
@@ -95,6 +97,33 @@ export function AlertsList() {
                     </p>
                   )}
                 </div>
+
+                {alert.active && (
+                  <button 
+                    onClick={() => setExpandedAlertId(expandedAlertId === alert.id ? null : alert.id)}
+                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-lg transition-all text-sm font-medium relative z-10 ${
+                      expandedAlertId === alert.id 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    {expandedAlertId === alert.id ? 'Fechar Chat' : 'Abrir Chat de Emergência'}
+                  </button>
+                )}
+
+                <AnimatePresence>
+                  {expandedAlertId === alert.id && alert.active && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden relative z-10"
+                    >
+                      <Chat alertId={alert.id} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {canResolve && (
                   <button 

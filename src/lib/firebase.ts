@@ -1,27 +1,88 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getMessaging } from 'firebase/messaging';
+import firebaseConfig from '../../firebase-applet-config.json';
 
-// O USUÁRIO DEVE SUBSTITUIR ISSO PELAS CREDENCIAIS DO FIREBASE DELE
-// Para obter essas chaves, crie um projeto no Firebase Console (https://console.firebase.google.com/)
-// Adicione um aplicativo Web e copie o objeto firebaseConfig para cá.
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "SUA_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "SEU_PROJETO.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "SEU_PROJETO",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "SEU_PROJETO.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "SEU_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "SEU_APP_ID",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
-};
+// Verifica se o Firebase está configurado
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-// Verifica se o usuário já configurou o Firebase
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "SUA_API_KEY" && firebaseConfig.apiKey !== "";
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+export const analytics = firebaseConfig.measurementId ? getAnalytics(app) : null;
 
-export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
-export const db = app ? getFirestore(app) : null;
-export const auth = app ? getAuth(app) : null;
-export const analytics = app && firebaseConfig.measurementId ? getAnalytics(app) : null;
-export const messaging = app ? getMessaging(app) : null;
+// Messaging só funciona em ambientes que suportam
+let messagingInstance = null;
+try {
+  messagingInstance = getMessaging(app);
+} catch (e) {
+  console.log("Messaging not supported in this environment");
+}
+export const messaging = messagingInstance;
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Teste de conexão conforme CRITICAL CONSTRAINT
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firebase conectado com sucesso!");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration or internet connection.");
+    } else {
+      console.error("Firebase connection test error:", error);
+    }
+  }
+}
+
+if (isFirebaseConfigured) {
+  testConnection();
+}

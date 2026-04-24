@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { AlertOctagon, Flame, Map, X, CheckCircle2, Plus } from 'lucide-react';
+import { Chat } from './Chat';
 
 export function AlertOverlay() {
   const { alerts, resolveAlert, dismissedAlertIds, dismissAlert, user } = useStore();
@@ -8,27 +9,6 @@ export function AlertOverlay() {
 
   const activeAlerts = alerts.filter(a => a.active);
   const activeAlert = activeAlerts.find(a => !dismissedAlertIds.includes(a.id));
-
-  // Notificação persistente para alertas de incêndio (Android/Background)
-  useEffect(() => {
-    if (activeAlert?.type === 'fire') {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const notification = new Notification("🔥 ALARME DE INCÊNDIO", {
-          body: `Acionado por ${activeAlert.triggeredBy.name}. Local: ${activeAlert.location || 'Não especificado'}`,
-          icon: "/pwa-192x192.png",
-          tag: `fire-alert-${activeAlert.id}`,
-          requireInteraction: true,
-          vibrate: [500, 200, 500, 200, 500],
-          renotify: true
-        } as any);
-
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
-      }
-    }
-  }, [activeAlert?.id, activeAlert?.type]);
 
   // Solicitar permissão para notificações do sistema quando o componente montar
   useEffect(() => {
@@ -74,11 +54,16 @@ export function AlertOverlay() {
       // 3. Mostrar notificação do sistema
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
-          const title = isFire ? '🚨 ALERTA DE INCÊNDIO!' : isFirstAid ? '🚨 PRIMEIROS SOCORROS!' : '🚨 ALERTA DE EMERGÊNCIA!';
-          const options = {
+          const title = isFire ? '🚨 INCÊNDIO! - ALERTA MÁXIMO' : isFirstAid ? '🚨 PRIMEIROS SOCORROS!' : '🚨 ALERTA DE EMERGÊNCIA!';
+          const options: NotificationOptions = {
             body: `${activeAlert.triggeredBy?.name || 'Usuário'} acionou um alerta no setor: ${activeAlert.triggeredBy?.sector || 'Desconhecido'}`,
-            vibrate: [500, 200, 500],
-            requireInteraction: true
+            icon: 'https://placehold.co/192x192/ffffff/004a99.png?text=S',
+            badge: 'https://placehold.co/192x192/ffffff/004a99.png?text=S',
+            vibrate: isFire ? [500, 200, 500, 200, 500] : [500, 200, 500],
+            requireInteraction: true,
+            tag: isFire ? 'fire-emergency-alert' : 'generic-emergency-alert',
+            renotify: true,
+            data: { url: window.location.origin }
           };
 
           // Em celulares (especialmente Android/Chrome), new Notification pode falhar.
@@ -186,6 +171,8 @@ export function AlertOverlay() {
               Ver no Mapa
             </a>
           )}
+
+          <Chat alertId={activeAlert.id} />
         </div>
       </div>
 

@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "sector": { "type": "string" },
+        "photo": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "fcmToken": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "phone", "sector", "role", "photo"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "Emergency alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["emergency", "fire", "firstaid", "simulated", "lockdown"] },
+        "triggeredBy": { "$ref": "User" },
+        "timestamp": { "type": "number" },
+        "active": { "type": "boolean" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "specificLocation": { "type": "string" },
+        "resolvedAt": { "type": "number" },
+        "notes": { "type": "string" }
+      },
+      "required": ["type", "triggeredBy", "timestamp", "active"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message within an alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["senderId", "senderName", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Emergency alerts collection"
+    },
+    "/alerts/{alertId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Chat messages for a specific alert"
+    }
+  }
+}

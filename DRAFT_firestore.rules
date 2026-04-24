@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole(request.auth.uid) == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- User Profile Rules ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['id', 'name', 'email', 'phone', 'sector', 'role', 'photo']) &&
+               data.keys().size() == 7 &&
+               data.id == request.auth.uid &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+               data.email is string && data.email == request.auth.token.email &&
+               data.phone is string && data.phone.size() <= 20 &&
+               data.sector is string && data.sector.size() <= 50 &&
+               data.role in ['user', 'admin'] &&
+               data.photo is string;
+      }
+
+      // Restrict read to owner or admin to protect PII (phone, email)
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      // Allow users to register their own profile
+      allow create: if isOwner(userId) && isValidUser(incoming()) && 
+                    (incoming().role == 'user' || request.auth.token.email == 'vinidoctor@gmail.com');
+      
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().role == existing().role &&
+                    incoming().email == existing().email &&
+                    incoming().id == existing().id &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'sector', 'photo', 'fcmToken']);
+      
+      allow delete: if isAdmin();
+    }
+
+    // --- Alert Rules ---
+    match /alerts/{alertId} {
+      function isValidAlert(data) {
+        return data.keys().hasAll(['type', 'triggeredBy', 'timestamp', 'active']) &&
+               data.type in ['emergency', 'fire', 'firstaid', 'simulated', 'lockdown'] &&
+               data.triggeredBy.id is string &&
+               data.timestamp is int &&
+               data.active is bool;
+      }
+
+      // Only registered users can read alerts
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); 
+      
+      allow create: if isSignedIn() && isValidAlert(incoming()) && 
+                    incoming().triggeredBy.id == request.auth.uid &&
+                    incoming().active == true &&
+                    incoming().timestamp == request.time.toMillis();
+      
+      allow update: if (isAdmin() || (isSignedIn() && existing().triggeredBy.id == request.auth.uid)) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['active', 'resolvedAt', 'notes']) &&
+                    incoming().active == false &&
+                    incoming().resolvedAt == request.time.toMillis();
+
+      allow delete: if isAdmin();
+    }
+    
+    // Test collection for connection check
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
