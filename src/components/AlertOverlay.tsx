@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { AlertOctagon, Flame, Map, X, CheckCircle2, Plus, Volume2, VolumeX, ShieldAlert } from 'lucide-react';
+import { AlertOctagon, Flame, Map, X, CheckCircle2, Plus, Volume2, VolumeX, ShieldAlert, Copy, Check } from 'lucide-react';
 import { Chat } from './Chat';
 import { motion, AnimatePresence } from 'motion/react';
 import { audioManager } from '../lib/audio';
@@ -8,9 +8,19 @@ import { audioManager } from '../lib/audio';
 export function AlertOverlay() {
   const { alerts, resolveAlert, dismissedAlertIds, dismissAlert, user } = useStore();
   const [muted, setMuted] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   const activeAlerts = alerts.filter(a => a.active);
   const activeAlert = activeAlerts.find(a => !dismissedAlertIds.includes(a.id));
+
+  const copyToClipboard = () => {
+    if (activeAlert?.location) {
+      const coords = `${activeAlert.location.lat}, ${activeAlert.location.lng}`;
+      navigator.clipboard.writeText(coords);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
   const lastNotificationTime = useRef<number>(0);
 
   useEffect(() => {
@@ -205,15 +215,24 @@ export function AlertOverlay() {
               )}
 
               {activeAlert.location && (
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${activeAlert.location.lat},${activeAlert.location.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-3 w-full bg-white text-slate-950 font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
-                >
-                  <Map className="w-6 h-6" />
-                  VER MAPA EM TEMPO REAL
-                </a>
+                <div className="flex gap-2">
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${activeAlert.location.lat},${activeAlert.location.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-[3] flex items-center justify-center gap-3 bg-white text-slate-950 font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl text-xs sm:text-sm"
+                  >
+                    <Map className="w-5 h-5 sm:w-6 sm:h-6" />
+                    VER MAPA
+                  </a>
+                  <button
+                    onClick={copyToClipboard}
+                    className="flex-1 flex items-center justify-center bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 active:scale-95 transition-all border border-white/20"
+                    title="Copiar Coordenadas"
+                  >
+                    {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
               )}
             </div>
 
