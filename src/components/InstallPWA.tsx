@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Share, X, MoreVertical } from 'lucide-react';
+import { Download, Share, X, MoreVertical, ShieldAlert, Globe } from 'lucide-react';
 
 export function InstallPWA() {
   const [supportsPWA, setSupportsPWA] = useState(false);
@@ -84,7 +84,10 @@ export function InstallPWA() {
               <Download className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="font-black text-lg leading-tight uppercase tracking-tight">Sentinela App</h3>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Globe className="w-3.5 h-3.5 text-blue-300" />
+                <h3 className="font-black text-lg leading-tight uppercase tracking-tight">Sentinela App</h3>
+              </div>
               <p className="text-blue-100 text-xs">Instale para resposta instantânea</p>
             </div>
           </div>

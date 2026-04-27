@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useStore, AlertType } from '../store/useStore';
-import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock } from 'lucide-react';
+import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock, Globe } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationPermission } from './NotificationPermission';
 
@@ -70,15 +70,22 @@ export function Home() {
       <div className="-mx-6 -mt-6 mb-6">
         <NotificationPermission />
       </div>
-      <header className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+      <header className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-lg relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+          <ShieldAlert className="w-16 h-16 text-red-500" />
+        </div>
         <img 
           src={user.photo} 
           alt={user.name} 
-          className="w-16 h-16 rounded-full object-cover border-2 border-slate-600"
+          className="w-14 h-14 rounded-full object-cover border-2 border-slate-600 shadow-md z-10"
         />
-        <div>
+        <div className="z-10">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Globe className="w-4 h-4 text-red-500 animate-pulse" />
+            <h1 className="text-xs font-black text-red-500 uppercase tracking-widest">Sentinela - Alerta de Emergência</h1>
+          </div>
           <h2 className="text-xl font-bold text-white leading-tight">{user.name}</h2>
-          <p className="text-slate-400 text-sm">{user.sector}</p>
+          <p className="text-slate-400 text-xs font-medium uppercase tracking-tighter opacity-80">{user.sector}</p>
         </div>
       </header>
 

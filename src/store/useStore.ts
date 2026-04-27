@@ -161,8 +161,14 @@ export const useStore = create<AppState>()(
                 const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (userDoc.exists()) {
                   const userData = userDoc.data() as User;
-                  // Ensure ID is present and matches the auth UID
-                  const sanitizedUser = { ...userData, id: firebaseUser.uid };
+                  // Force admin role for specific emails
+                  const isAdminEmail = ['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br'].includes(userData.email.toLowerCase());
+                  const sanitizedUser = { 
+                    ...userData, 
+                    id: firebaseUser.uid,
+                    role: isAdminEmail ? 'admin' : userData.role 
+                  } as User;
+                  
                   set({ user: sanitizedUser, initialized: true });
 
                   // Subscribe to alerts ONLY when user is authenticated
