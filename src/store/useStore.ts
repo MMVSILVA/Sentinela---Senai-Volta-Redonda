@@ -88,6 +88,8 @@ interface AppState {
   sendCommunityMessage: (text?: string, imageFile?: File) => Promise<void>;
   subscribeToAlertMessages: (alertId: string) => () => void;
   subscribeToCommunityMessages: () => () => void;
+  deleteCommunityMessage: (id: string) => Promise<void>;
+  updateCommunityMessage: (id: string, text: string) => Promise<void>;
   resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateFCMToken: () => Promise<void>;
@@ -446,6 +448,30 @@ export const useStore = create<AppState>()(
         } catch (error) {
           console.error("Failed to send community message:", error);
           handleFirestoreError(error, OperationType.WRITE, 'community_messages');
+          throw error;
+        }
+      },
+
+      deleteCommunityMessage: async (id: string) => {
+        if (!isFirebaseConfigured || !db) return;
+        try {
+          await deleteDoc(doc(db, 'community_messages', id));
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `community_messages/${id}`);
+          throw error;
+        }
+      },
+
+      updateCommunityMessage: async (id: string, text: string) => {
+        if (!isFirebaseConfigured || !db) return;
+        try {
+          await updateDoc(doc(db, 'community_messages', id), {
+            text,
+            isEdited: true,
+            updatedAt: serverTimestamp()
+          });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.UPDATE, `community_messages/${id}`);
           throw error;
         }
       },

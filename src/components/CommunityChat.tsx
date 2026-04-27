@@ -1,21 +1,48 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Send, User as UserIcon, CheckCheck, Users, Smile, Paperclip, X, Image as ImageIcon } from 'lucide-react';
+import { 
+  Send, 
+  CheckCheck, 
+  Users, 
+  Smile, 
+  Paperclip, 
+  X, 
+  Trash2, 
+  Edit3, 
+  Bold, 
+  Italic, 
+  List as ListIcon,
+  MoreVertical,
+  Check
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import ReactMarkdown from 'react-markdown';
+import TextareaAutosize from 'react-textarea-autosize';
 
 export function CommunityChat() {
-  const { communityMessages, sendCommunityMessage, subscribeToCommunityMessages, user } = useStore();
+  const { 
+    communityMessages, 
+    sendCommunityMessage, 
+    deleteCommunityMessage,
+    updateCommunityMessage,
+    subscribeToCommunityMessages, 
+    user 
+  } = useStore();
+  
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorId, setErrorId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [messageOptionsId, setMessageOptionsId] = useState<string | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const unsub = subscribeToCommunityMessages();
@@ -23,34 +50,37 @@ export function CommunityChat() {
   }, [subscribeToCommunityMessages]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !editingMessageId) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
         behavior: (communityMessages.length > 5) ? 'smooth' : 'auto'
       });
     }
-  }, [communityMessages]);
+  }, [communityMessages, editingMessageId]);
 
-  // Close emoji picker when clicking outside
+  // Close emoji picker and options when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false);
       }
+      if (messageOptionsId) {
+        setMessageOptionsId(null);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [messageOptionsId]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOrUpdate = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     const cleanText = text.trim();
     
     if (!cleanText && !selectedImage) return;
     if (isSending) return;
     
     if (!user) {
-      setErrorId('Você precisa estar logado para enviar mensagens.');
+      setErrorId('Você precisa estar logado.');
       setTimeout(() => setErrorId(null), 3000);
       return;
     }
@@ -58,22 +88,49 @@ export function CommunityChat() {
     if ('vibrate' in navigator) navigator.vibrate(50);
     
     setIsSending(true);
-    setText('');
-    setSelectedImage(null);
-    setImagePreview(null);
-    setErrorId(null);
-    setShowEmojiPicker(false);
     
     try {
-      await sendCommunityMessage(cleanText, selectedImage || undefined);
+      if (editingMessageId) {
+        await updateCommunityMessage(editingMessageId, cleanText);
+        setEditingMessageId(null);
+        setText('');
+      } else {
+        await sendCommunityMessage(cleanText, selectedImage || undefined);
+        setText('');
+        setSelectedImage(null);
+        setImagePreview(null);
+      }
+      setErrorId(null);
+      setShowEmojiPicker(false);
     } catch (err: any) {
       console.error("Chat Error:", err);
-      setText(cleanText);
-      setErrorId('Erro ao enviar. Verifique sua conexão.');
+      setErrorId('Erro ao processar. Tente novamente.');
       setTimeout(() => setErrorId(null), 4000);
     } finally {
       setIsSending(false);
     }
+  };
+
+  const applyFormatting = (prefix: string, suffix: string = prefix) => {
+    if (!textareaRef.current) return;
+    
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    const selectedText = text.substring(start, end);
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    
+    const newText = `${before}${prefix}${selectedText}${suffix}${after}`;
+    setText(newText);
+    
+    // Reset focus and selection
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newPos = start + prefix.length + selectedText.length + suffix.length;
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
   };
 
   const onEmojiClick = (emojiData: any) => {
@@ -95,6 +152,23 @@ export function CommunityChat() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Deseja realmente apagar esta mensagem?')) {
+      try {
+        await deleteCommunityMessage(id);
+      } catch (err) {
+        console.error("Delete error:", err);
+      }
+    }
+  };
+
+  const startEditing = (msg: any) => {
+    setEditingMessageId(msg.id);
+    setText(msg.text || '');
+    setMessageOptionsId(null);
+    textareaRef.current?.focus();
+  };
+
   const formatTime = (ts: number) => {
     if (!ts) return '';
     return new Intl.DateTimeFormat('pt-BR', {
@@ -105,7 +179,7 @@ export function CommunityChat() {
 
   return (
     <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative">
-      {/* Header Estilo WhatsApp */}
+      {/* Header */}
       <div className="p-4 bg-[#202c33] flex items-center gap-3 shadow-md z-20 border-b border-white/5">
         <div className="bg-blue-600 p-2.5 rounded-full shadow-lg">
           <Users className="w-5 h-5 text-white" />
@@ -119,7 +193,7 @@ export function CommunityChat() {
         </div>
       </div>
 
-      {/* Área de Mensagens */}
+      {/* Mensagens */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] custom-scrollbar relative"
@@ -130,7 +204,6 @@ export function CommunityChat() {
           backgroundSize: '400px'
         }}
       >
-        {/* Overlay para suavizar e integrar com a paleta do app */}
         <div className="absolute inset-0 bg-[#0b141a]/90 pointer-events-none" />
 
         <div className="relative z-10 w-full flex flex-col space-y-3">
@@ -144,20 +217,54 @@ export function CommunityChat() {
             ) : (
               communityMessages.map((msg) => {
                 const isMe = msg.senderId === user?.id;
+                const isShownOptions = messageOptionsId === msg.id;
+
                 return (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                    className={`group flex ${isMe ? 'justify-end' : 'justify-start'}`}
                   >
                     <div 
-                      className={`max-w-[85%] sm:max-w-[70%] rounded-lg shadow-md relative transition-all ${
+                      className={`max-w-[85%] sm:max-w-[70%] rounded-lg shadow-md relative transition-all group-hover:shadow-lg ${
                         isMe 
                           ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' 
                           : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'
                       } ${msg.imageUrl ? 'p-1' : 'px-3 py-1.5'}`}
                     >
+                      {/* Menu de Opções para Minhas Mensagens */}
+                      {isMe && (
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMessageOptionsId(isShownOptions ? null : msg.id);
+                            }}
+                            className="p-1 hover:bg-black/20 rounded-full text-[#8696a0]"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+
+                          {isShownOptions && (
+                            <div className="absolute right-0 top-6 bg-[#233138] rounded shadow-xl py-1 z-20 min-w-[100px] border border-white/10">
+                              <button 
+                                onClick={() => startEditing(msg)}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2"
+                              >
+                                <Edit3 className="w-3 h-3 text-blue-400" /> Editar
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(msg.id)}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2 text-red-400"
+                              >
+                                <Trash2 className="w-3 h-3" /> Excluir
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {!isMe && (
                         <span className="text-[11px] font-black text-blue-400 block mb-0.5 tracking-tight px-2 pt-1">
                           {msg.senderName}
@@ -175,13 +282,16 @@ export function CommunityChat() {
                         </div>
                       )}
 
-                      <div className={`flex items-end gap-2 ${msg.imageUrl ? 'px-2 pb-1' : ''}`}>
+                      <div className={`flex flex-col ${msg.imageUrl ? 'px-2 pb-1' : ''}`}>
                         {msg.text && (
-                          <p className="text-[13px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words flex-1">
-                            {msg.text}
-                          </p>
+                          <div className="text-[13px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words prose prose-invert prose-xs max-w-full">
+                            <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          </div>
                         )}
-                        <div className={`flex items-center gap-1.5 shrink-0 ${msg.text ? 'mb-[-4px]' : 'ml-auto'}`}>
+                        <div className="flex items-center gap-1.5 self-end mt-1">
+                          {(msg as any).isEdited && (
+                            <span className="text-[9px] text-[#8696a0] italic">editada</span>
+                          )}
                           <span className="text-[9px] text-[#8696a0] font-medium">
                             {formatTime(msg.timestamp)}
                           </span>
@@ -197,7 +307,53 @@ export function CommunityChat() {
         </div>
       </div>
 
-      {/* Preview de Imagem Selecionada */}
+      {/* Toolbar de Formatação */}
+      <AnimatePresence>
+        {(text.length > 0 || editingMessageId) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="px-4 py-2 bg-[#202c33] border-t border-white/5 flex gap-4 overflow-x-auto no-scrollbar"
+          >
+            <button 
+              onClick={() => applyFormatting('**', '**')}
+              className="text-[#8696a0] hover:text-white p-1 hover:bg-white/5 rounded transition-colors"
+              title="Negrito"
+            >
+              <Bold className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => applyFormatting('_', '_')}
+              className="text-[#8696a0] hover:text-white p-1 hover:bg-white/5 rounded transition-colors"
+              title="Itálico"
+            >
+              <Italic className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => applyFormatting('- ', '')}
+              className="text-[#8696a0] hover:text-white p-1 hover:bg-white/5 rounded transition-colors"
+              title="Lista"
+            >
+              <ListIcon className="w-4 h-4" />
+            </button>
+            
+            {editingMessageId && (
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Editando</span>
+                <button 
+                  onClick={() => { setEditingMessageId(null); setText(''); }}
+                  className="p-1 text-red-400 hover:bg-red-400/10 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview de Imagem */}
       <AnimatePresence>
         {imagePreview && (
           <motion.div 
@@ -228,28 +384,28 @@ export function CommunityChat() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
-            className="absolute bottom-[80px] left-4 z-30 shadow-2xl"
+            className="absolute bottom-[85px] left-4 z-30 shadow-2xl"
           >
             <EmojiPicker 
               onEmojiClick={onEmojiClick} 
               theme={Theme.DARK}
               lazyLoadEmojis={true}
               width={300}
-              height={400}
+              height={350}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Input de Mensagem Estilo WhatsApp */}
+      {/* Input */}
       <div className="p-3 bg-[#202c33] flex flex-col gap-2 z-20">
         {errorId && (
           <div className="text-[10px] text-red-500 font-black px-4 animate-pulse text-center uppercase tracking-tighter">
             {errorId}
           </div>
         )}
-        <form onSubmit={handleSend} className="flex items-center gap-2 max-w-5xl mx-auto w-full">
-          <div className="flex items-center gap-1 bg-[#2a3942] rounded-full flex-1 px-2 py-1 shadow-inner border border-white/5">
+        <div className="flex items-end gap-2 max-w-5xl mx-auto w-full">
+          <div className="flex items-center gap-1 bg-[#2a3942] rounded-2xl flex-1 px-2 py-1 shadow-inner border border-white/5">
             <button
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -258,21 +414,31 @@ export function CommunityChat() {
               <Smile className="w-6 h-6" />
             </button>
             
-            <input
-              type="text"
+            <TextareaAutosize
+              ref={textareaRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendOrUpdate();
+                }
+              }}
               placeholder="Mensagem"
-              className="flex-1 bg-transparent border-none px-2 py-2 text-sm text-[#d1d7db] placeholder-[#8696a0] focus:ring-0 transition-all"
+              minRows={1}
+              maxRows={6}
+              className="flex-1 bg-transparent border-none px-2 py-3 text-sm text-[#d1d7db] placeholder-[#8696a0] focus:ring-0 transition-all resize-none custom-scrollbar"
             />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-[#8696a0] hover:text-[#00a884] transition-colors"
-            >
-              <Paperclip className="w-5 h-5 -rotate-45" />
-            </button>
+            {!editingMessageId && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 text-[#8696a0] hover:text-[#00a884] transition-colors"
+              >
+                <Paperclip className="w-5 h-5 -rotate-45" />
+              </button>
+            )}
             
             <input 
               type="file" 
@@ -284,7 +450,7 @@ export function CommunityChat() {
           </div>
 
           <button
-            type="submit"
+            onClick={() => handleSendOrUpdate()}
             disabled={(!text.trim() && !selectedImage) || isSending}
             className={`flex items-center justify-center rounded-full transition-all active:scale-90 min-w-[48px] min-h-[48px] shadow-xl ${
               (text.trim() || selectedImage) ? 'bg-[#00a884] shadow-[#00a884]/20' : 'bg-[#2a3942] text-[#8696a0]'
@@ -292,13 +458,16 @@ export function CommunityChat() {
           >
             {isSending ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : editingMessageId ? (
+              <Check className="w-5 h-5 text-white" />
             ) : (
               <Send className={`w-5 h-5 ${(text.trim() || selectedImage) ? 'text-white translate-x-0.5' : 'text-[#8696a0]'}`} />
             )}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
+
 
