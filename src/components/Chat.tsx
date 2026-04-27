@@ -27,12 +27,17 @@ export function Chat({ alertId }: ChatProps) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim() || isSending) return;
+    const cleanText = text.trim();
+    if (!cleanText || isSending) return;
 
+    if ('vibrate' in navigator) navigator.vibrate(50);
     setIsSending(true);
+    
     try {
-      await sendMessage(alertId, text.trim());
+      await sendMessage(alertId, cleanText);
       setText('');
+    } catch (err) {
+      console.error("Message send error:", err);
     } finally {
       setIsSending(false);
     }

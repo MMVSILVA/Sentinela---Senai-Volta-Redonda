@@ -3,6 +3,7 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getMessaging } from 'firebase/messaging';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Verifica se o Firebase está configurado
@@ -11,6 +12,7 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 export const analytics = firebaseConfig.measurementId ? getAnalytics(app) : null;
 
 // Messaging só funciona em ambientes que suportam

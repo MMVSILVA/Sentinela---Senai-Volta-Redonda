@@ -19,10 +19,20 @@ export function Layout({ children }: LayoutProps) {
     { id: 'config', label: 'Config', icon: Settings },
   ] as const;
 
+  const isChat = currentTab === 'community';
+
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col font-sans">
-      <main className="flex-1 overflow-y-auto pb-20">
-        {children}
+    <div className="h-screen bg-slate-900 flex flex-col font-sans overflow-hidden">
+      <main className={cn("flex-1 relative", !isChat && "overflow-y-auto pb-20")}>
+        {isChat ? (
+          <div className="absolute inset-0 bottom-20">
+            {children}
+          </div>
+        ) : (
+          <div className="min-h-full">
+            {children}
+          </div>
+        )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-6 py-3">

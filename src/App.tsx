@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from './store/useStore';
 import { Login } from './components/Login';
 import { Layout } from './components/Layout';
@@ -14,12 +14,29 @@ import { UpdatePrompt } from './components/UpdatePrompt';
 import { audioManager } from './lib/audio';
 
 export default function App() {
-  const { user, initialized, currentTab, init } = useStore();
+  const { user, initialized, currentTab, init, updateFCMToken } = useStore();
+  const [initStarted, setInitStarted] = useState(false);
 
   useEffect(() => {
-    init();
-    audioManager.preload();
-  }, [init]);
+    if (!initStarted) {
+      init();
+      audioManager.preload();
+      setInitStarted(true);
+    }
+  }, [init, initStarted]);
+
+  useEffect(() => {
+    if (user && initialized) {
+      // Request notifications permission and update FCM token
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            updateFCMToken();
+          }
+        });
+      }
+    }
+  }, [user, initialized, updateFCMToken]);
 
   if (!initialized) {
     return (

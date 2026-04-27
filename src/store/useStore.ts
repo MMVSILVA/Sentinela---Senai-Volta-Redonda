@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, auth, isFirebaseConfigured, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  getDocs, 
+  deleteDoc, 
+  setDoc, 
+  getDoc, 
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp 
+} from 'firebase/firestore';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
 
 export type UserRole = 'user' | 'admin';
@@ -42,7 +56,9 @@ export type Message = {
   id: string;
   senderId: string;
   senderName: string;
-  text: string;
+  senderPhoto?: string;
+  text?: string;
+  imageUrl?: string;
   timestamp: number;
 };
 
@@ -69,11 +85,12 @@ interface AppState {
   resolveAlert: (alertId: string, notes?: string) => Promise<void>;
   dismissAlert: (alertId: string) => void;
   sendMessage: (alertId: string, text: string) => Promise<void>;
-  sendCommunityMessage: (text: string) => Promise<void>;
+  sendCommunityMessage: (text?: string, imageFile?: File) => Promise<void>;
   subscribeToAlertMessages: (alertId: string) => () => void;
   subscribeToCommunityMessages: () => () => void;
   resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  updateFCMToken: () => Promise<void>;
   addContact: (contact: Omit<Contact, 'id'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
@@ -372,13 +389,23 @@ export const useStore = create<AppState>()(
       subscribeToCommunityMessages: () => {
         if (!isFirebaseConfigured || !db) return () => {};
 
-        const q = collection(db, 'community_messages');
+        // Query optimized: limit to latest 50 messages
+        const q = query(
+          collection(db, 'community_messages'), 
+          orderBy('timestamp', 'desc'),
+          limit(50)
+        );
         
         return onSnapshot(q, (snapshot) => {
-          const newMessages = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Message[];
+          const newMessages = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              // Fallback for timestamp if using serverTimestamp which might be null initially
+              timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : (data.timestamp || Date.now())
+            };
+          }) as Message[];
           
           set({
             communityMessages: newMessages.sort((a, b) => a.timestamp - b.timestamp)
@@ -390,20 +417,36 @@ export const useStore = create<AppState>()(
         });
       },
 
-      sendCommunityMessage: async (text: string) => {
+      sendCommunityMessage: async (text?: string, imageFile?: File) => {
         const { user } = get();
-        if (!user || !isFirebaseConfigured || !db) return;
+        if (!user || !isFirebaseConfigured || !db) {
+          throw new Error("Usuário não autenticado ou Firebase não configurado");
+        }
 
         try {
+          let imageUrl = '';
+          if (imageFile) {
+            const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+            const { storage } = await import('../lib/firebase');
+            const fileRef = ref(storage, `community/${Date.now()}_${imageFile.name}`);
+            const uploadResult = await uploadBytes(fileRef, imageFile);
+            imageUrl = await getDownloadURL(uploadResult.ref);
+          }
+
+          if (!text && !imageUrl) return;
+
           await addDoc(collection(db, 'community_messages'), {
             senderId: user.id,
             senderName: user.name,
             senderPhoto: user.photo || '',
-            text,
-            timestamp: Date.now()
+            text: text || '',
+            imageUrl,
+            timestamp: serverTimestamp()
           });
         } catch (error) {
+          console.error("Failed to send community message:", error);
           handleFirestoreError(error, OperationType.WRITE, 'community_messages');
+          throw error;
         }
       },
 
@@ -441,6 +484,33 @@ export const useStore = create<AppState>()(
             console.error("Error updating profile in Firestore:", error);
             handleFirestoreError(error, OperationType.UPDATE, path);
           }
+        }
+      },
+
+      updateFCMToken: async () => {
+        const { user } = get();
+        if (!user || !isFirebaseConfigured || !db) return;
+
+        try {
+          const { messaging } = await import('../lib/firebase');
+          if (!messaging) return;
+
+          const { getToken } = await import('firebase/messaging');
+          
+          // Get the registered service worker
+          const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+          
+          const token = await getToken(messaging, {
+            serviceWorkerRegistration: registration,
+            vapidKey: 'BMc7jO2vK-Xz7Jv2F9vM0j9X8y4vX_yv_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v' 
+          });
+
+          if (token) {
+            await updateDoc(doc(db, 'users', user.id), { fcmToken: token });
+            set(state => ({ user: state.user ? { ...state.user, fcmToken: token } : null }));
+          }
+        } catch (error) {
+          console.error("Failed to get FCM token:", error);
         }
       },
 

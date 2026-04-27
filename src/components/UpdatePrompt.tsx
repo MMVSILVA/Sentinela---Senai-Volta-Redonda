@@ -38,15 +38,30 @@ export function UpdatePrompt() {
       });
     }
 
-    // 2. Check for APP_VERSION update (Faster logic for dev environment)
-    const storedVersion = localStorage.getItem('sentinela_app_version');
-    if (storedVersion && storedVersion !== APP_VERSION) {
-      setIsNewVersion(true);
-      setShowPrompt(true);
-    }
-    // Save current version for next time
-    localStorage.setItem('sentinela_app_version', APP_VERSION);
+    // 2. Poll for version change (API-like fallback)
+    const checkVersion = async () => {
+      try {
+        const response = await fetch('/version.json?t=' + Date.now());
+        if (!response.ok) return;
+        const data = await response.json();
+        const storedVersion = localStorage.getItem('sentinela_app_version');
+        
+        if (storedVersion && storedVersion !== data.version) {
+          console.log('Update found via version check:', { stored: storedVersion, current: data.version });
+          setIsNewVersion(true);
+          setShowPrompt(true);
+        }
+        
+        // Always store latest seen version
+        localStorage.setItem('sentinela_app_version', data.version);
+      } catch (err) {
+        console.error('Failed to check version:', err);
+      }
+    };
 
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000); // Check every minute
+    return () => clearInterval(interval);
   }, []);
 
   const updateApp = () => {
