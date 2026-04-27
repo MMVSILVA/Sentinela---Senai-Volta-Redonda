@@ -32,18 +32,59 @@ try {
   console.error('[SW] Erro ao carregar Messaging:', e);
 }
 
-// 2. Ciclo de Vida do Service Worker (PWA)
+const CACHE_NAME = 'sentinela-cache-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json'
+];
+
+// 1. Configurações do Firebase (Background Notifications)
+// ... keeping current code below ...
+
 self.addEventListener('install', (e) => {
   console.log('[SW] Instalado');
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
 });
 
 self.addEventListener('activate', (e) => {
   console.log('[SW] Ativado');
+  e.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
   return self.clients.claim();
 });
 
-self.addEventListener('fetch', (e) => {
-  // Obrigatório para o PWA ser instalável
+self.addEventListener('fetch', (event) => {
+  // Ignorar requisições para o Firebase e outras origens externas que não queremos cachear
+  if (event.request.url.includes('firestore.googleapis.com') || 
+      event.request.url.includes('firebasestorage.googleapis.com') ||
+      event.request.url.includes('google.com')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request).catch(() => {
+        // Se estiver offline e não estiver no cache, retorna a página inicial
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
+      });
+    })
+  );
 });
 
 self.addEventListener('message', (event) => {

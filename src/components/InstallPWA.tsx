@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Share, X, MoreVertical, ShieldAlert, Globe } from 'lucide-react';
+import { Download, Share, X, MoreVertical, ShieldAlert, Globe, MoreHorizontal } from 'lucide-react';
+import { Logo } from './Logo';
 
 export function InstallPWA() {
   const [supportsPWA, setSupportsPWA] = useState(false);
@@ -7,8 +8,8 @@ export function InstallPWA() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-
   const [isIframe, setIsIframe] = useState(false);
+  const [showManualGuide, setShowManualGuide] = useState(false);
 
   useEffect(() => {
     // 0. Detect Iframe
@@ -36,125 +37,149 @@ export function InstallPWA() {
     
     window.addEventListener('beforeinstallprompt', handler);
 
-    // 2.5 Listen for custom trigger
+    // 2.5 Listen for custom trigger from Home.tsx button
     const customTriggerHandler = () => {
       if (promptInstall) {
         promptInstall.prompt();
-      } else if (isIOS) {
-        setIsDismissed(false);
-        setSupportsPWA(true);
+      } else if (isStandalone) {
+        alert("O Sentinela já está instalado!");
       } else {
-        alert("Para instalar direto, você deve primeiro abrir o aplicativo em uma nova aba (fora do modo desenvolvedor) clicando no ícone de seta no canto superior direito.");
+        // Show the manual guide instead of an alert
+        setShowManualGuide(true);
+        setSupportsPWA(true);
+        setIsDismissed(false);
       }
     };
     window.addEventListener('trigger-pwa-install', customTriggerHandler);
 
     // 3. Fallback: Show install option if not standalone
-    // This helps users know how to install even if the browser doesn't trigger the native prompt
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-    if (!standalone && isMobile) {
+    if (!standalone && isIOSMobile) {
       setSupportsPWA(true);
     }
     
+    // Also show if it's android but prompt didn't fire yet (common in some browsers)
+    const isAndroid = /Android/i.test(ua);
+    if (!standalone && isAndroid && !isDismissed) {
+      setSupportsPWA(true);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('trigger-pwa-install', customTriggerHandler);
     };
-  }, []);
+  }, [promptInstall]);
 
-  const onClick = async (evt: React.MouseEvent<HTMLButtonElement>) => {
-    evt.preventDefault();
-    if (!promptInstall) {
-      // Check if we are in an iframe
-      if (window.self !== window.top) {
-        alert("Para instalar 'direto', abra o aplicativo em uma nova aba clicando no ícone de seta no canto superior direito do AI Studio.");
-        return;
+  const handleInstallClick = async () => {
+    if (promptInstall) {
+      try {
+        await promptInstall.prompt();
+        const choiceResult = await promptInstall.userChoice;
+        if (choiceResult.outcome === 'accepted') {
+          setIsDismissed(true);
+        }
+        setPromptInstall(null);
+      } catch (err) {
+        console.error('Error during PWA installation:', err);
       }
-      alert("Seu navegador ainda não liberou a instalação direta. Use o menu do navegador (três pontinhos) e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");
-      return;
-    }
-    
-    try {
-      await promptInstall.prompt();
-      const choiceResult = await promptInstall.userChoice;
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the PWA install');
-        setSupportsPWA(false);
-      }
-      setPromptInstall(null);
-    } catch (err) {
-      console.error('Error during PWA installation:', err);
+    } else {
+      setShowManualGuide(true);
     }
   };
 
   const dismiss = () => {
     setIsDismissed(true);
-    localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+    setShowManualGuide(false);
   };
 
-  if (!supportsPWA || isDismissed || isStandalone) return null;
+  if (isStandalone || isDismissed || (!supportsPWA && !showManualGuide)) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-50 md:left-auto md:right-6 md:w-96 animate-in fade-in slide-in-from-bottom-10">
-      <div className="bg-gradient-to-br from-blue-700 to-blue-900 text-white p-5 rounded-2xl shadow-[0_20px_50px_rgba(30,58,138,0.5)] border border-blue-400/30">
-        <div className="flex items-start justify-between mb-4">
+    <div className="fixed bottom-24 left-4 right-4 z-[9999] md:left-auto md:right-6 md:w-96 animate-in fade-in slide-in-from-bottom-10">
+      <div className="bg-gradient-to-br from-indigo-700 via-blue-800 to-indigo-900 text-white p-6 rounded-[32px] shadow-[0_30px_70px_rgba(0,0,0,0.6)] border border-white/20 relative overflow-hidden backdrop-blur-xl">
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex items-start justify-between mb-6 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shadow-inner group-hover:scale-110 transition-transform">
-              <Download className="w-7 h-7 text-white" />
+            <div className="bg-white p-3 rounded-2xl shadow-2xl hover:scale-105 transition-transform">
+              <Logo size="sm" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-blue-300" />
-                <h3 className="font-black text-lg leading-tight uppercase tracking-tight">Sentinela PWA</h3>
-              </div>
-              <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest opacity-80 italic">Transformar em Aplicativo Real</p>
+              <h3 className="font-black text-xl leading-tight uppercase tracking-tighter">Instalar Sentinela</h3>
+              <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Aplicativo Pró Vision
+              </p>
             </div>
           </div>
           <button 
             onClick={dismiss}
-            className="p-1 hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6 opacity-50 hover:opacity-100" />
           </button>
         </div>
 
-        {isIframe ? (
-          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 text-center">
-            <p className="text-sm font-bold mb-3 leading-snug text-white">
-              Para instalar "direto" sem os 3 pontinhos:
-            </p>
+        {showManualGuide ? (
+          <div className="space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/10 p-5 rounded-2xl border border-white/10 space-y-4">
+               <div className="flex items-center gap-3">
+                  <div className="bg-blue-500/30 p-2 rounded-lg">
+                    {isIOS ? <Share className="w-5 h-5" /> : <MoreVertical className="w-5 h-5" />}
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {isIOS ? 'Toque no ícone de Compartilhar' : 'Toque nos 3 pontos do navegador'}
+                  </p>
+               </div>
+               <div className="flex items-center gap-3">
+                  <div className="bg-emerald-500/30 p-2 rounded-lg">
+                    <Download className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {isIOS ? 'Selecione "Adicionar à Tela de Início"' : 'Selecione "Instalar Aplicativo"'}
+                  </p>
+               </div>
+            </div>
+            <button 
+              onClick={() => setShowManualGuide(false)}
+              className="w-full py-4 text-xs font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors"
+            >
+              Voltar
+            </button>
+          </div>
+        ) : isIframe ? (
+          <div className="space-y-4 relative z-10">
+            <div className="bg-amber-500/20 p-4 rounded-2xl border border-amber-500/30">
+              <p className="text-xs font-bold leading-relaxed text-amber-200">
+                A instalação direta está bloqueada no modo visualização.
+              </p>
+            </div>
             <button
                onClick={() => window.open(window.location.href, '_blank')}
-               className="w-full bg-white text-blue-800 font-black py-3 rounded-xl shadow-lg hover:bg-blue-50 active:scale-95 transition-all uppercase text-xs"
+               className="w-full bg-white text-blue-900 font-black py-4 rounded-2xl shadow-2xl hover:bg-blue-50 active:scale-95 transition-all uppercase text-xs flex items-center justify-center gap-3"
             >
-              Abrir em Nova Aba 🚀
+              <Globe className="w-5 h-5" />
+              Abrir Fora da Visualização
             </button>
-            <p className="text-[9px] text-blue-200 mt-3 font-bold uppercase tracking-tighter">
-              A instalação direta só funciona fora da visualização de desenvolvedor.
-            </p>
           </div>
-        ) : !isIOS ? (
-           <div className="space-y-4">
-             <button
-                onClick={onClick}
-                className="w-full bg-white text-blue-800 font-black py-4 rounded-xl shadow-lg hover:bg-blue-50 active:scale-95 transition-all text-center uppercase tracking-wider"
-              >
-                Instalar Agora
-              </button>
-              {!promptInstall && (
-                 <p className="text-[10px] text-blue-200 text-center uppercase font-medium tracking-widest opacity-80">
-                   Ou use o menu <MoreVertical className="w-3 h-3 inline" /> do seu navegador
-                 </p>
-              )}
-           </div>
         ) : (
-          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-            <p className="text-sm font-medium leading-relaxed">
-              1. Toque no ícone de <Share className="w-5 h-5 inline mx-1 text-blue-300" /> (Compartilhar)
+          <div className="space-y-4 relative z-10">
+            <p className="text-blue-100 text-sm font-medium leading-snug mb-2">
+              Transforme o site em um aplicativo de segurança real na sua tela inicial agora.
             </p>
-            <p className="text-sm font-medium mt-3 leading-relaxed">
-              2. Selecione <strong className="text-blue-300 font-black uppercase tracking-tighter">"Adicionar à Tela de Início"</strong>
-            </p>
+            <button
+               onClick={handleInstallClick}
+               className="w-full bg-emerald-500 text-white font-black py-5 rounded-[20px] shadow-2xl hover:bg-emerald-400 active:scale-95 transition-all flex items-center justify-center gap-4 text-sm uppercase tracking-wider group"
+            >
+              <Download className="w-6 h-6 group-hover:animate-bounce" />
+              Instalar Agora
+            </button>
+            <button 
+              onClick={() => setShowManualGuide(true)}
+              className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white flex items-center justify-center gap-1"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+              Ver Guia Manual
+            </button>
           </div>
         )}
       </div>
