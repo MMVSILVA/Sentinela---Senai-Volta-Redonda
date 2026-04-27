@@ -20,7 +20,8 @@ import {
   Users,
   ShieldAlert,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  Edit
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -44,7 +45,7 @@ import { cn } from '../lib/utils';
 import { Logo } from './Logo';
 
 export function Admin() {
-  const { alerts, resolveAlert, resetAlerts } = useStore();
+  const { alerts, resolveAlert, resetAlerts, events, addEvent, updateEvent, deleteEvent } = useStore();
   
   // Helper map for colors in chart
   const alertTypeMap: Record<string, string> = {
@@ -55,7 +56,7 @@ export function Admin() {
     'Simulado (Evasão)': 'simulated'
   };
 
-  const [activeTab, setActiveTab] = useState<'dados' | 'dashboard'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dados' | 'dashboard' | 'calendario'>('dashboard');
   const [aiInsight, setAiInsight] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -64,6 +65,47 @@ export function Admin() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSector, setFilterSector] = useState<string>('all');
+
+  // Event form state
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    type: 'drill' as any,
+    location: ''
+  });
+
+  const handleSaveEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingEventId) {
+      await updateEvent(editingEventId, eventForm);
+    } else {
+      await addEvent(eventForm);
+    }
+    setShowEventModal(false);
+    setEditingEventId(null);
+    setEventForm({
+      title: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      type: 'drill',
+      location: ''
+    });
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEventId(event.id);
+    setEventForm({
+      title: event.title,
+      description: event.description || '',
+      date: event.date,
+      type: event.type,
+      location: event.location || ''
+    });
+    setShowEventModal(true);
+  };
 
   const getAlertLabel = (type: string) => {
     switch (type) {
@@ -321,6 +363,18 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
           <TableIcon className="w-4 h-4" />
           Base de Dados
         </button>
+        <button
+          onClick={() => setActiveTab('calendario')}
+          className={cn(
+            "flex items-center gap-2 px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300",
+            activeTab === 'calendario' 
+              ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
+              : "text-slate-500 hover:text-slate-300"
+          )}
+        >
+          <Calendar className="w-4 h-4" />
+          Calendário de Segurança
+        </button>
       </div>
 
       {aiInsight && (
@@ -555,6 +609,159 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
               </div>
             </div>
           </div>
+        </div>
+      ) : activeTab === 'calendario' ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-white">Calendário de Segurança</h2>
+              <p className="text-slate-500 text-sm">Gerencie simulados, treinamentos e auditorias</p>
+            </div>
+            <button 
+              onClick={() => {
+                setEditingEventId(null);
+                setEventForm({
+                  title: '',
+                  description: '',
+                  date: new Date().toISOString().split('T')[0],
+                  type: 'drill',
+                  location: ''
+                });
+                setShowEventModal(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20"
+            >
+              <Plus className="w-5 h-5" />
+              Novo Evento
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.length === 0 ? (
+              <div className="col-span-full py-20 text-center bg-slate-900/50 rounded-[32px] border border-slate-800 border-dashed">
+                <Calendar className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Nenhum evento programado</p>
+              </div>
+            ) : (
+              events.map(event => (
+                <div key={event.id} className="bg-[#161B22] border border-slate-800 rounded-[28px] p-6 shadow-xl relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={cn(
+                      "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                      event.type === 'drill' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                      event.type === 'training' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
+                      event.type === 'inspection' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                      "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                    )}>
+                      {event.type}
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => handleEditEvent(event)} className="text-slate-500 hover:text-white p-1">
+                          <Edit className="w-4 h-4" />
+                       </button>
+                       <button onClick={() => deleteEvent(event.id)} className="text-red-500/50 hover:text-red-500 p-1">
+                          <Trash2 className="w-4 h-4" />
+                       </button>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-black text-white mb-2 leading-tight">{event.title}</h3>
+                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-3">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span className="font-bold">{new Date(event.date).toLocaleDateString()}</span>
+                  </div>
+                  {event.location && (
+                    <div className="flex items-center gap-2 text-slate-500 text-xs mb-4">
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>{event.location}</span>
+                    </div>
+                  )}
+                  <p className="text-slate-400 text-xs line-clamp-2">{event.description}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {showEventModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <div className="bg-[#161B22] border border-slate-800 rounded-[32px] w-full max-w-md p-8 shadow-3xl">
+                <h3 className="text-xl font-black text-white mb-6">
+                  {editingEventId ? 'Editar Evento' : 'Novo Evento de Segurança'}
+                </h3>
+                <form onSubmit={handleSaveEvent} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Título do Evento</label>
+                    <input 
+                      required
+                      type="text" 
+                      value={eventForm.title}
+                      onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      placeholder="Ex: Simulado de Incêndio - Prédio A"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Data</label>
+                      <input 
+                        required
+                        type="date" 
+                        value={eventForm.date}
+                        onChange={(e) => setEventForm({...eventForm, date: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tipo</label>
+                      <select 
+                        value={eventForm.type}
+                        onChange={(e) => setEventForm({...eventForm, type: e.target.value as any})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        <option value="drill">Simulado</option>
+                        <option value="training">Treinamento</option>
+                        <option value="inspection">Inspeção</option>
+                        <option value="event">Evento</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Local</label>
+                    <input 
+                      type="text" 
+                      value={eventForm.location}
+                      onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      placeholder="Ex: Refeitório / Área Externa"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Descrição</label>
+                    <textarea 
+                      value={eventForm.description}
+                      onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 h-24 resize-none"
+                      placeholder="Detalhes sobre o evento..."
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setShowEventModal(false)}
+                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-3 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs py-3 rounded-xl shadow-lg shadow-blue-900/40 transition-all"
+                    >
+                      {editingEventId ? 'Atualizar Evento' : 'Agendar Evento'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

@@ -52,6 +52,18 @@ export type Contact = {
   department: string;
 };
 
+export type CalendarEventType = 'drill' | 'training' | 'inspection' | 'event';
+
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  type: CalendarEventType;
+  location?: string;
+  timestamp: number;
+};
+
 export type Message = {
   id: string;
   senderId: string;
@@ -71,6 +83,7 @@ interface AppState {
   communityMessages: Message[];
   dismissedAlertIds: string[];
   contacts: Contact[];
+  events: CalendarEvent[];
   currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community';
   localUsers: (User & { password?: string })[];
   initialized: boolean;
@@ -90,6 +103,10 @@ interface AppState {
   sendCommunityMessage: (text?: string, imageFile?: File) => Promise<void>;
   subscribeToAlertMessages: (alertId: string) => () => void;
   subscribeToCommunityMessages: () => () => void;
+  subscribeToEvents: () => () => void;
+  addEvent: (event: Omit<CalendarEvent, 'id' | 'timestamp'>) => Promise<void>;
+  updateEvent: (id: string, event: Partial<CalendarEvent>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
   deleteCommunityMessage: (id: string) => Promise<void>;
   updateCommunityMessage: (id: string, text: string) => Promise<void>;
   reactToCommunityMessage: (id: string, emoji: string) => Promise<void>;
@@ -134,6 +151,7 @@ export const useStore = create<AppState>()(
       communityMessages: [],
       dismissedAlertIds: [],
       contacts: MOCK_CONTACTS,
+      events: [],
       currentTab: 'home',
       localUsers: [{
         id: 'admin-fallback',
@@ -431,6 +449,52 @@ export const useStore = create<AppState>()(
             handleFirestoreError(error, OperationType.GET, 'community_messages');
           }
         });
+      },
+
+      subscribeToEvents: () => {
+        if (!isFirebaseConfigured || !db) return () => {};
+        const q = query(collection(db, 'events'), orderBy('timestamp', 'desc'));
+        return onSnapshot(q, (snapshot) => {
+          const eventsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as CalendarEvent[];
+          set({ events: eventsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) });
+        }, (error) => {
+           if (error.code !== 'permission-denied') {
+             handleFirestoreError(error, OperationType.GET, 'events');
+           }
+        });
+      },
+
+      addEvent: async (eventData) => {
+        if (!isFirebaseConfigured || !db) return;
+        try {
+          await addDoc(collection(db, 'events'), {
+            ...eventData,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, 'events');
+        }
+      },
+
+      updateEvent: async (id, data) => {
+        if (!isFirebaseConfigured || !db) return;
+        try {
+          await updateDoc(doc(db, 'events', id), data);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.UPDATE, `events/${id}`);
+        }
+      },
+
+      deleteEvent: async (id) => {
+        if (!isFirebaseConfigured || !db) return;
+        try {
+          await deleteDoc(doc(db, 'events', id));
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `events/${id}`);
+        }
       },
 
       sendCommunityMessage: async (text?: string, imageFile?: File) => {
