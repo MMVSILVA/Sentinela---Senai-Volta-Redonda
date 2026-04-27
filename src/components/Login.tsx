@@ -243,7 +243,13 @@ export function Login() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEmail(val);
+                    if (['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br'].includes(val.toLowerCase())) {
+                      setRole('admin');
+                    }
+                  }}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="seu@email.com"
                   required

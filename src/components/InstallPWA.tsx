@@ -9,17 +9,7 @@ export function InstallPWA() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // 1. Check if already dismissed in last 24h
-    const lastDismissed = localStorage.getItem('pwa_prompt_dismissed');
-    if (lastDismissed) {
-      const dismissTime = parseInt(lastDismissed, 10);
-      const now = Date.now();
-      if (now - dismissTime < 24 * 60 * 60 * 1000) {
-        setIsDismissed(true);
-      }
-    }
-
-    // 2. Detect environment
+    // 1. Detect environment
     const ua = window.navigator.userAgent;
     const isIOSMobile = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
@@ -31,7 +21,7 @@ export function InstallPWA() {
       setSupportsPWA(true);
     }
 
-    // 3. Listen for deferred prompt
+    // 2. Listen for deferred prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setSupportsPWA(true);
@@ -41,34 +31,41 @@ export function InstallPWA() {
     
     window.addEventListener('beforeinstallprompt', handler);
 
-    // 4. Fallback for Android Chrome if manifest is valid but event was missed
-    // We show it after a bit if not standalone
-    const timer = setTimeout(() => {
-      if (!standalone && !isIOSMobile) {
-        setSupportsPWA(true);
-      }
-    }, 5000);
+    // 3. Fallback: Show install option if not standalone
+    // This helps users know how to install even if the browser doesn't trigger the native prompt
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    if (!standalone && isMobile) {
+      setSupportsPWA(true);
+    }
     
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
-      clearTimeout(timer);
     };
   }, []);
 
-  const onClick = (evt: React.MouseEvent<HTMLButtonElement>) => {
+  const onClick = async (evt: React.MouseEvent<HTMLButtonElement>) => {
     evt.preventDefault();
     if (!promptInstall) {
-      alert("Para instalar: no Android, toque nos três pontinhos do navegador e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");
+      // Check if we are in an iframe
+      if (window.self !== window.top) {
+        alert("Para instalar 'direto', abra o aplicativo em uma nova aba clicando no ícone de seta no canto superior direito do AI Studio.");
+        return;
+      }
+      alert("Seu navegador ainda não liberou a instalação direta. Use o menu do navegador (três pontinhos) e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");
       return;
     }
     
-    promptInstall.prompt();
-    
-    promptInstall.userChoice.then((choiceResult: { outcome: string }) => {
+    try {
+      await promptInstall.prompt();
+      const choiceResult = await promptInstall.userChoice;
       if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the PWA install');
         setSupportsPWA(false);
       }
-    });
+      setPromptInstall(null);
+    } catch (err) {
+      console.error('Error during PWA installation:', err);
+    }
   };
 
   const dismiss = () => {

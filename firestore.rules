@@ -60,7 +60,7 @@ service cloud.firestore {
       
       // Allow users to register their own profile
       allow create: if isOwner(userId) && isValidUser(incoming()) && 
-                    (incoming().role == 'user' || request.auth.token.email == 'vinidoctor@gmail.com');
+                    (incoming().role == 'user' || request.auth.token.email in ['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br']);
       
       allow update: if isOwner(userId) && 
                     incoming().role == existing().role &&
