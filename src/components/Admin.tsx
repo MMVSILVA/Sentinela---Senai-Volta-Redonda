@@ -19,7 +19,8 @@ import {
   Bell,
   Users,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  MessageSquare
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -40,6 +41,7 @@ import {
 } from 'recharts';
 import { GoogleGenAI } from '@google/genai';
 import { cn } from '../lib/utils';
+import { Logo } from './Logo';
 
 export function Admin() {
   const { alerts, resolveAlert, resetAlerts } = useStore();
@@ -219,7 +221,7 @@ export function Admin() {
     }
   };
 
-  const handleResetAlerts = async () => {
+    const handleResetAlerts = async () => {
     if (window.confirm("Tem certeza que deseja apagar TODO o histórico de alertas? Esta ação não pode ser desfeita.")) {
       setIsResetting(true);
       await resetAlerts();
@@ -227,20 +229,53 @@ export function Admin() {
     }
   };
 
+  const handleShareUpdate = () => {
+    const message = `🚨 *Atualização do Sistema Sentinela* 🚨
+
+Informamos que o aplicativo Sentinela acaba de receber novas atualizações de segurança e performance!
+
+✨ *O que mudou:*
+• 📲 *Instalação Direta:* Agora você pode baixar o Sentinela como um aplicativo real clicando no novo banner azul na tela inicial!
+• 🎨 Nova identidade visual com o logo oficial.
+• 🔧 Menu fixo para melhor navegação.
+• 📊 Gráficos de inteligência aprimorados.
+
+*Instruções para Instalação:*
+1. Abra o app no navegador.
+2. Clique no banner "Baixar App Agora".
+3. Confirme a instalação para ter o Sentinela na sua tela de apps!
+
+*Sentinela - Sua segurança em primeiro lugar.* 🛡️`;
+    
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="p-6 bg-[#0B0E14] min-h-screen text-slate-200">
-      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800/50 pb-6">
-        <div>
-          <h1 className="text-3xl font-black text-white mb-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            Inteligência Sentinela
-          </h1>
-          <p className="text-slate-500 text-sm font-medium flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Monitoramento de emergências em tempo real e análise preditiva.
-          </p>
+      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800/50 pb-6 relative overflow-hidden">
+        <div className="flex items-center gap-4 z-10">
+          <Logo size="lg" className="shadow-blue-500/20" />
+          <div>
+            <h1 className="text-3xl font-black text-white mb-0.5 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              Inteligência Sentinela
+            </h1>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              SISTEMA DE MONITORAMENTO AVANÇADO
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
+          <button 
+            onClick={handleShareUpdate}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/20 font-bold text-sm"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Zap Updates</span>
+          </button>
+          
           <button 
             onClick={generateAIInsights}
             disabled={isAnalyzing || alerts.length === 0}

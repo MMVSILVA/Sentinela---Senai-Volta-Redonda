@@ -8,7 +8,12 @@ export function InstallPWA() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
+  const [isIframe, setIsIframe] = useState(false);
+
   useEffect(() => {
+    // 0. Detect Iframe
+    setIsIframe(window.self !== window.top);
+
     // 1. Detect environment
     const ua = window.navigator.userAgent;
     const isIOSMobile = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -31,6 +36,19 @@ export function InstallPWA() {
     
     window.addEventListener('beforeinstallprompt', handler);
 
+    // 2.5 Listen for custom trigger
+    const customTriggerHandler = () => {
+      if (promptInstall) {
+        promptInstall.prompt();
+      } else if (isIOS) {
+        setIsDismissed(false);
+        setSupportsPWA(true);
+      } else {
+        alert("Para instalar direto, você deve primeiro abrir o aplicativo em uma nova aba (fora do modo desenvolvedor) clicando no ícone de seta no canto superior direito.");
+      }
+    };
+    window.addEventListener('trigger-pwa-install', customTriggerHandler);
+
     // 3. Fallback: Show install option if not standalone
     // This helps users know how to install even if the browser doesn't trigger the native prompt
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
@@ -40,6 +58,7 @@ export function InstallPWA() {
     
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('trigger-pwa-install', customTriggerHandler);
     };
   }, []);
 
@@ -80,15 +99,15 @@ export function InstallPWA() {
       <div className="bg-gradient-to-br from-blue-700 to-blue-900 text-white p-5 rounded-2xl shadow-[0_20px_50px_rgba(30,58,138,0.5)] border border-blue-400/30">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
-            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shadow-inner group-hover:scale-110 transition-transform">
               <Download className="w-7 h-7 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-0.5">
-                <Globe className="w-3.5 h-3.5 text-blue-300" />
-                <h3 className="font-black text-lg leading-tight uppercase tracking-tight">Sentinela App</h3>
+                <ShieldAlert className="w-3.5 h-3.5 text-blue-300" />
+                <h3 className="font-black text-lg leading-tight uppercase tracking-tight">Sentinela PWA</h3>
               </div>
-              <p className="text-blue-100 text-xs">Instale para resposta instantânea</p>
+              <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest opacity-80 italic">Transformar em Aplicativo Real</p>
             </div>
           </div>
           <button 
@@ -99,7 +118,22 @@ export function InstallPWA() {
           </button>
         </div>
 
-        {!isIOS ? (
+        {isIframe ? (
+          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20 text-center">
+            <p className="text-sm font-bold mb-3 leading-snug text-white">
+              Para instalar "direto" sem os 3 pontinhos:
+            </p>
+            <button
+               onClick={() => window.open(window.location.href, '_blank')}
+               className="w-full bg-white text-blue-800 font-black py-3 rounded-xl shadow-lg hover:bg-blue-50 active:scale-95 transition-all uppercase text-xs"
+            >
+              Abrir em Nova Aba 🚀
+            </button>
+            <p className="text-[9px] text-blue-200 mt-3 font-bold uppercase tracking-tighter">
+              A instalação direta só funciona fora da visualização de desenvolvedor.
+            </p>
+          </div>
+        ) : !isIOS ? (
            <div className="space-y-4">
              <button
                 onClick={onClick}

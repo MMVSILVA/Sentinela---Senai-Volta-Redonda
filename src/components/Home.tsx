@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useStore, AlertType } from '../store/useStore';
-import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock, Globe } from 'lucide-react';
+import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock, Globe, Smartphone } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationPermission } from './NotificationPermission';
+import { Logo } from './Logo';
 
 export function Home() {
   const { user, triggerAlert } = useStore();
@@ -71,22 +72,25 @@ export function Home() {
         <NotificationPermission />
       </div>
       <header className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-lg relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-          <ShieldAlert className="w-16 h-16 text-red-500" />
+        <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+          <Logo size="lg" className="rotate-12" />
         </div>
         <img 
           src={user.photo} 
           alt={user.name} 
           className="w-14 h-14 rounded-full object-cover border-2 border-slate-600 shadow-md z-10"
         />
-        <div className="z-10">
+        <div className="z-10 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
-            <Globe className="w-4 h-4 text-red-500 animate-pulse" />
-            <h1 className="text-xs font-black text-red-500 uppercase tracking-widest">Sentinela - Alerta de Emergência</h1>
+            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              Sentinela - Em Operação
+            </h1>
           </div>
-          <h2 className="text-xl font-bold text-white leading-tight">{user.name}</h2>
-          <p className="text-slate-400 text-xs font-medium uppercase tracking-tighter opacity-80">{user.sector}</p>
+          <h2 className="text-xl font-black text-white leading-tight tracking-tight">{user.name}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-tighter opacity-80">{user.sector}</p>
         </div>
+        <Logo size="sm" className="hidden sm:flex z-10" />
       </header>
 
       <div className="mb-8">
@@ -206,6 +210,32 @@ export function Home() {
               )}
             </button>
             <span className="text-slate-400 font-semibold text-xs">Simulado (Evasão)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 mb-8">
+        <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded-2xl p-5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+             <Smartphone className="w-16 h-16 text-blue-400" />
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-white font-black uppercase tracking-widest text-[10px] mb-2 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+              SISTEMA SENTINELA
+            </h3>
+            <p className="text-sm font-bold text-slate-200 mb-4 leading-tight">
+              Instale o aplicativo oficial para acesso instantâneo e notificações em tempo real.
+            </p>
+            <button 
+              onClick={() => {
+                const event = new CustomEvent('trigger-pwa-install');
+                window.dispatchEvent(event);
+              }}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg shadow-blue-900/30 transition-all active:scale-95"
+            >
+              Baixar App Agora
+            </button>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { ShieldAlert, Upload, Camera, Mail, Lock, User as UserIcon, Phone, Briefcase, ArrowLeft } from 'lucide-react';
+import { Logo } from './Logo';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -115,9 +116,7 @@ export function Login() {
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md bg-slate-900 p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-            <ShieldAlert className="w-8 h-8 text-red-500" />
-          </div>
+          <Logo size="lg" className="mb-4" />
           <h1 className="text-2xl font-bold text-white text-center">Sentinela</h1>
           <p className="text-slate-400 text-center mt-2">
             {mode === 'login' && 'Identifique-se para acessar'}

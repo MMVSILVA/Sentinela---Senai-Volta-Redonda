@@ -35,7 +35,7 @@ export function Layout({ children }: LayoutProps) {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-6 py-3">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-6 py-3 z-50 backdrop-blur-lg bg-opacity-95">
         <ul className="flex items-center justify-between max-w-md mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;

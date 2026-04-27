@@ -4,19 +4,20 @@
   "description": "App de Alarme e Emergência",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b141a",
-  "theme_color": "#202c33",
+  "background_color": "#0B0E14",
+  "theme_color": "#0B0E14",
   "icons": [
     {
-      "src": "https://img.icons8.com/color/192/security-shield.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='white'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='%232563eb' font-family='sans-serif' font-weight='900' font-size='380'%3ES%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "https://img.icons8.com/color/512/security-shield.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='white'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='%232563eb' font-family='sans-serif' font-weight='900' font-size='380'%3ES%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
