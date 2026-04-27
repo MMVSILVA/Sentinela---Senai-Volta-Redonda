@@ -13,7 +13,15 @@ import {
   Italic, 
   List as ListIcon,
   MoreVertical,
-  Check
+  Check,
+  FileText,
+  Image as ImageIcon,
+  Camera,
+  Music,
+  User as UserContact,
+  BarChart2,
+  Calendar,
+  Sticker
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
@@ -26,6 +34,7 @@ export function CommunityChat() {
     sendCommunityMessage, 
     deleteCommunityMessage,
     updateCommunityMessage,
+    reactToCommunityMessage,
     subscribeToCommunityMessages, 
     user 
   } = useStore();
@@ -34,14 +43,18 @@ export function CommunityChat() {
   const [isSending, setIsSending] = useState(false);
   const [errorId, setErrorId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [messageOptionsId, setMessageOptionsId] = useState<string | null>(null);
+  const [reactionMsgId, setReactionMsgId] = useState<string | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
+  const reactionMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -58,11 +71,17 @@ export function CommunityChat() {
     }
   }, [communityMessages, editingMessageId]);
 
-  // Close emoji picker and options when clicking outside
+  // Close emoji picker, attachment menu and options when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false);
+      }
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node)) {
+        setShowAttachmentMenu(false);
+      }
+      if (reactionMenuRef.current && !reactionMenuRef.current.contains(event.target as Node)) {
+        setReactionMsgId(null);
       }
       if (messageOptionsId) {
         setMessageOptionsId(null);
@@ -88,6 +107,8 @@ export function CommunityChat() {
     if ('vibrate' in navigator) navigator.vibrate(50);
     
     setIsSending(true);
+    setShowEmojiPicker(false);
+    setShowAttachmentMenu(false);
     
     try {
       if (editingMessageId) {
@@ -101,7 +122,6 @@ export function CommunityChat() {
         setImagePreview(null);
       }
       setErrorId(null);
-      setShowEmojiPicker(false);
     } catch (err: any) {
       console.error("Chat Error:", err);
       setErrorId('Erro ao processar. Tente novamente.');
@@ -149,6 +169,7 @@ export function CommunityChat() {
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
+      setShowAttachmentMenu(false);
     }
   };
 
@@ -177,6 +198,38 @@ export function CommunityChat() {
     }).format(new Date(ts));
   };
 
+  const attachmentOptions = [
+    { id: 'doc', label: 'Documento', icon: FileText, color: 'bg-indigo-600' },
+    { id: 'media', label: 'Fotos e vídeos', icon: ImageIcon, color: 'bg-blue-500', action: () => fileInputRef.current?.click() },
+    { id: 'camera', label: 'Câmera', icon: Camera, color: 'bg-pink-600' },
+    { id: 'audio', label: 'Áudio', icon: Music, color: 'bg-orange-500' },
+    { id: 'contact', label: 'Contato', icon: UserContact, color: 'bg-blue-400' },
+    { id: 'poll', label: 'Enquete', icon: BarChart2, color: 'bg-yellow-500' },
+    { id: 'event', label: 'Evento', icon: Calendar, color: 'bg-rose-500' },
+    { id: 'sticker', label: 'Nova figurinha', icon: Sticker, color: 'bg-teal-500' },
+  ];
+
+  const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  const handleReaction = async (msgId: string, emoji: string) => {
+    if (!user) return;
+    setReactionMsgId(null);
+    try {
+      await reactToCommunityMessage(msgId, emoji);
+    } catch (err) {
+      console.error("Reaction error:", err);
+    }
+  };
+
+  const getReactionCounts = (reactions?: Record<string, string>) => {
+    if (!reactions) return [];
+    const counts: Record<string, number> = {};
+    Object.values(reactions).forEach(emoji => {
+      counts[emoji] = (counts[emoji] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative">
       {/* Header */}
@@ -197,27 +250,17 @@ export function CommunityChat() {
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] custom-scrollbar relative"
-        style={{
-          backgroundImage: `url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')`,
-          backgroundBlendMode: 'soft-light',
-          backgroundColor: '#0b141a',
-          backgroundSize: '400px'
-        }}
       >
-        <div className="absolute inset-0 bg-[#0b141a]/90 pointer-events-none" />
-
         <div className="relative z-10 w-full flex flex-col space-y-3">
           <AnimatePresence initial={false}>
             {communityMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 gap-2 mt-auto">
-                <div className="bg-[#182229] px-4 py-1.5 rounded-lg border border-white/5 shadow-sm">
-                  <p className="text-[#8696a0] text-xs font-medium">As mensagens são criptografadas.</p>
-                </div>
-              </div>
+              <div className="flex flex-col items-center justify-center h-40 mt-auto opacity-0" />
             ) : (
               communityMessages.map((msg) => {
                 const isMe = msg.senderId === user?.id;
                 const isShownOptions = messageOptionsId === msg.id;
+                const isShowingReactions = reactionMsgId === msg.id;
+                const msgReactions = getReactionCounts(msg.reactions);
 
                 return (
                   <motion.div
@@ -231,39 +274,75 @@ export function CommunityChat() {
                         isMe 
                           ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' 
                           : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'
-                      } ${msg.imageUrl ? 'p-1' : 'px-3 py-1.5'}`}
+                      } ${msg.imageUrl ? 'p-1' : 'px-3 py-1.5'} ${msgReactions.length > 0 ? 'mb-4' : ''}`}
                     >
-                      {/* Menu de Opções para Minhas Mensagens */}
-                      {isMe && (
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMessageOptionsId(isShownOptions ? null : msg.id);
-                            }}
-                            className="p-1 hover:bg-black/20 rounded-full text-[#8696a0]"
+                      {/* Menu de Reação (WhatsApp Style) */}
+                      <AnimatePresence>
+                        {isShowingReactions && (
+                          <motion.div 
+                            ref={reactionMenuRef}
+                            initial={{ opacity: 0, scale: 0.8, x: isMe ? 20 : -20 }}
+                            animate={{ opacity: 1, scale: 1, x: isMe ? -215 : 45, y: -10 }}
+                            exit={{ opacity: 0, scale: 0.8, x: isMe ? 20 : -20 }}
+                            className={`absolute z-30 bg-[#233138] rounded-full px-2 py-1 flex gap-1 shadow-2xl border border-white/10 top-0`}
                           >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
+                            {reactionEmojis.map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={() => handleReaction(msg.id, emoji)}
+                                className="hover:scale-125 transition-transform p-1 text-lg"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
-                          {isShownOptions && (
-                            <div className="absolute right-0 top-6 bg-[#233138] rounded shadow-xl py-1 z-20 min-w-[100px] border border-white/10">
-                              <button 
-                                onClick={() => startEditing(msg)}
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2"
-                              >
-                                <Edit3 className="w-3 h-3 text-blue-400" /> Editar
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(msg.id)}
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2 text-red-400"
-                              >
-                                <Trash2 className="w-3 h-3" /> Excluir
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Botão de Reação e Opções */}
+                      <div className={`absolute top-0 ${isMe ? 'left-[-40px]' : 'right-[-40px]'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex flex-col items-center gap-0.5`}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReactionMsgId(isShowingReactions ? null : msg.id);
+                          }}
+                          className="p-1 hover:bg-black/20 rounded-full text-[#8696a0]"
+                          title="Reagir"
+                        >
+                          <Smile className="w-4 h-4" />
+                        </button>
+                        
+                        {isMe && (
+                          <div className="relative">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMessageOptionsId(isShownOptions ? null : msg.id);
+                              }}
+                              className="p-1 hover:bg-black/20 rounded-full text-[#8696a0]"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+
+                            {isShownOptions && (
+                              <div className="absolute right-0 top-6 bg-[#233138] rounded shadow-xl py-1 z-20 min-w-[100px] border border-white/10">
+                                <button 
+                                  onClick={() => startEditing(msg)}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2"
+                                >
+                                  <Edit3 className="w-3 h-3 text-blue-400" /> Editar
+                                </button>
+                                <button 
+                                  onClick={() => handleDelete(msg.id)}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#182229] flex items-center gap-2 text-red-400"
+                                >
+                                  <Trash2 className="w-3 h-3" /> Excluir
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       {!isMe && (
                         <span className="text-[11px] font-black text-blue-400 block mb-0.5 tracking-tight px-2 pt-1">
@@ -298,6 +377,18 @@ export function CommunityChat() {
                           {isMe && <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb]" />}
                         </div>
                       </div>
+
+                      {/* Display de Reações */}
+                      {msgReactions.length > 0 && (
+                        <div className={`absolute -bottom-3 ${isMe ? 'right-2' : 'left-2'} flex items-center gap-0.5 bg-[#202c33] border border-white/10 rounded-full px-1.5 py-0.5 shadow-sm`}>
+                          {msgReactions.map(([emoji, count]) => (
+                            <div key={emoji} className="flex items-center gap-0.5">
+                              <span className="text-[10px]">{emoji}</span>
+                              {count > 1 && <span className="text-[9px] text-[#8696a0] font-bold">{count}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -376,6 +467,34 @@ export function CommunityChat() {
         )}
       </AnimatePresence>
 
+      {/* Menu de Anexo */}
+      <AnimatePresence>
+        {showAttachmentMenu && (
+          <motion.div 
+            ref={attachmentMenuRef}
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.95 }}
+            className="absolute bottom-[85px] left-8 bg-[#233138] rounded-xl shadow-2xl z-50 p-4 border border-white/10 min-w-[200px]"
+          >
+            <div className="grid grid-cols-1 gap-1">
+              {attachmentOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={opt.action}
+                  className="flex items-center gap-4 px-3 py-2.5 hover:bg-[#182229] rounded-lg transition-colors group w-full text-left"
+                >
+                  <div className={`p-2 rounded-full ${opt.color} group-hover:scale-110 transition-transform`}>
+                    <opt.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-[#d1d7db] text-sm font-medium">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Emoji Picker */}
       <AnimatePresence>
         {showEmojiPicker && (
@@ -433,8 +552,8 @@ export function CommunityChat() {
             {!editingMessageId && (
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-[#8696a0] hover:text-[#00a884] transition-colors"
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                className={`p-2 transition-colors ${showAttachmentMenu ? 'text-[#00a884]' : 'text-[#8696a0] hover:text-[#00a884]'}`}
               >
                 <Paperclip className="w-5 h-5 -rotate-45" />
               </button>

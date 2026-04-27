@@ -60,6 +60,8 @@ export type Message = {
   text?: string;
   imageUrl?: string;
   timestamp: number;
+  expiresAt?: number;
+  reactions?: Record<string, string>; // userId -> emoji
 };
 
 interface AppState {
@@ -90,6 +92,7 @@ interface AppState {
   subscribeToCommunityMessages: () => () => void;
   deleteCommunityMessage: (id: string) => Promise<void>;
   updateCommunityMessage: (id: string, text: string) => Promise<void>;
+  reactToCommunityMessage: (id: string, emoji: string) => Promise<void>;
   resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateFCMToken: () => Promise<void>;
@@ -399,15 +402,20 @@ export const useStore = create<AppState>()(
         );
         
         return onSnapshot(q, (snapshot) => {
+          const now = Date.now();
           const newMessages = snapshot.docs.map(doc => {
-            const data = doc.data();
+            const data = doc.data() as any;
             return {
               id: doc.id,
               ...data,
               // Fallback for timestamp if using serverTimestamp which might be null initially
               timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : (data.timestamp || Date.now())
-            };
-          }) as Message[];
+            } as Message;
+          }).filter(msg => {
+            // Filter out expired messages
+            if (msg.expiresAt && msg.expiresAt < now) return false;
+            return true;
+          });
           
           set({
             communityMessages: newMessages.sort((a, b) => a.timestamp - b.timestamp)
@@ -427,12 +435,17 @@ export const useStore = create<AppState>()(
 
         try {
           let imageUrl = '';
+          let expiresAt: number | null = null;
+
           if (imageFile) {
             const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
             const { storage } = await import('../lib/firebase');
             const fileRef = ref(storage, `community/${Date.now()}_${imageFile.name}`);
             const uploadResult = await uploadBytes(fileRef, imageFile);
             imageUrl = await getDownloadURL(uploadResult.ref);
+            
+            // Set expiration to 24 hours for messages with images
+            expiresAt = Date.now() + (24 * 60 * 60 * 1000);
           }
 
           if (!text && !imageUrl) return;
@@ -443,7 +456,8 @@ export const useStore = create<AppState>()(
             senderPhoto: user.photo || '',
             text: text || '',
             imageUrl,
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            expiresAt: expiresAt || null
           });
         } catch (error) {
           console.error("Failed to send community message:", error);
@@ -473,6 +487,32 @@ export const useStore = create<AppState>()(
         } catch (error) {
           handleFirestoreError(error, OperationType.UPDATE, `community_messages/${id}`);
           throw error;
+        }
+      },
+
+      reactToCommunityMessage: async (id: string, emoji: string) => {
+        const { user } = get();
+        if (!user || !isFirebaseConfigured || !db) return;
+
+        try {
+          const msgRef = doc(db, 'community_messages', id);
+          const msgDoc = await getDoc(msgRef);
+          
+          if (msgDoc.exists()) {
+            const data = msgDoc.data() as Message;
+            const currentReactions = data.reactions || {};
+            
+            // Toggle reaction: If clicking same emoji, remove it. Otherwise add/replace it.
+            if (currentReactions[user.id] === emoji) {
+              delete currentReactions[user.id];
+            } else {
+              currentReactions[user.id] = emoji;
+            }
+            
+            await updateDoc(msgRef, { reactions: currentReactions });
+          }
+        } catch (error) {
+          console.error("Failed to react:", error);
         }
       },
 

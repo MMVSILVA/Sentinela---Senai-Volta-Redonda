@@ -43,6 +43,12 @@ export function UpdatePrompt() {
       try {
         const response = await fetch('/version.json?t=' + Date.now());
         if (!response.ok) return;
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          return;
+        }
+
         const data = await response.json();
         const storedVersion = localStorage.getItem('sentinela_app_version');
         
@@ -55,7 +61,10 @@ export function UpdatePrompt() {
         // Always store latest seen version
         localStorage.setItem('sentinela_app_version', data.version);
       } catch (err) {
-        console.error('Failed to check version:', err);
+        // Only log if it's not a common fetch or parsing error during dev/routing transitions
+        if (err instanceof Error && !err.message.includes('Unexpected token')) {
+          console.error('Failed to check version:', err);
+        }
       }
     };
 

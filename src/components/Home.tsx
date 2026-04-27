@@ -103,31 +103,6 @@ export function Home() {
         <div className="grid grid-cols-2 gap-x-12 gap-y-8 w-full max-w-md place-items-center">
           <div className="flex flex-col items-center gap-4">
             <button
-              onMouseDown={() => startPress('emergency')}
-              onMouseUp={stopPress}
-              onMouseLeave={stopPress}
-              onTouchStart={() => startPress('emergency')}
-              onTouchEnd={stopPress}
-              className="relative group"
-            >
-              <div className={cn(
-                "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
-                "bg-gradient-to-br from-red-500 to-red-700",
-                pressingType === 'emergency' ? "scale-95" : "hover:scale-105"
-              )}>
-                <AlertCircle className="w-10 h-10 text-white" />
-              </div>
-              {pressingType === 'emergency' && (
-                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="4" strokeDasharray={`${progress * 3} 300`} className="transition-all duration-75 ease-linear" />
-                </svg>
-              )}
-            </button>
-            <span className="text-red-400 font-semibold text-xs">Emergência</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-4">
-            <button
               onMouseDown={() => startPress('fire')}
               onMouseUp={stopPress}
               onMouseLeave={stopPress}
@@ -201,7 +176,7 @@ export function Home() {
             <span className="text-blue-400 font-semibold text-xs">Lockdown</span>
           </div>
 
-          <div className="flex flex-col items-center gap-4 col-span-2">
+          <div className="flex flex-col items-center gap-4">
             <button
               onMouseDown={() => startPress('simulated')}
               onMouseUp={stopPress}

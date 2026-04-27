@@ -10,7 +10,6 @@ import { Config } from './components/Config';
 import { CommunityChat } from './components/CommunityChat';
 import { AlertOverlay } from './components/AlertOverlay';
 import { InstallPWA } from './components/InstallPWA';
-import { UpdatePrompt } from './components/UpdatePrompt';
 import { audioManager } from './lib/audio';
 
 export default function App() {
@@ -51,7 +50,6 @@ export default function App() {
       <>
         <Login />
         <InstallPWA />
-        <UpdatePrompt />
       </>
     );
   }
@@ -69,7 +67,6 @@ export default function App() {
       
       <AlertOverlay />
       <InstallPWA />
-      <UpdatePrompt />
     </>
   );
 }
