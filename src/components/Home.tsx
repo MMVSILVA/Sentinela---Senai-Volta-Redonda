@@ -11,19 +11,31 @@ export function Home() {
   const [specificLocation, setSpecificLocation] = useState('');
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastLocationRef = useRef<{ lat: number, lng: number } | null>(null);
 
-  const HOLD_DURATION = 2000;
+  const HOLD_DURATION = 1500; // Reduzido para 1.5s para maior rapidez
 
   const startPress = (type: AlertType) => {
     setPressingType(type);
     setProgress(0);
+
+    // Iniciar busca de GPS IMEDIATAMENTE ao tocar, para ganhar tempo
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          lastLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        },
+        null,
+        { enableHighAccuracy: true, timeout: 2000 }
+      );
+    }
 
     const startTime = Date.now();
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const newProgress = Math.min((elapsed / HOLD_DURATION) * 100, 100);
       setProgress(newProgress);
-    }, 50);
+    }, 30); 
 
     pressTimerRef.current = setTimeout(() => {
       handleTrigger(type);
@@ -38,25 +50,17 @@ export function Home() {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   };
 
-  const handleTrigger = (type: AlertType) => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          triggerAlert(type, {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }, specificLocation);
-        },
-        (error) => {
-          console.error("Erro GPS:", error);
-          triggerAlert(type, undefined, specificLocation);
-        },
-        { timeout: 5000 }
-      );
-    } else {
-      triggerAlert(type, undefined, specificLocation);
+  const handleTrigger = async (type: AlertType) => {
+    const finalLocation = lastLocationRef.current;
+    
+    try {
+      await triggerAlert(type, finalLocation || undefined, specificLocation);
+    } catch (err: any) {
+      console.error("Erro ao disparar:", err);
     }
+    
     setSpecificLocation('');
+    lastLocationRef.current = null;
   };
 
   if (!user) return null;

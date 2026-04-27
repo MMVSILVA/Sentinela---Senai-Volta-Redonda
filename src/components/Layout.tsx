@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { Home as HomeIcon, Bell, Settings, ShieldAlert, Users } from 'lucide-react';
+import { Home as HomeIcon, Bell, Settings, ShieldAlert, Users, MessageSquare } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface LayoutProps {
@@ -13,6 +13,7 @@ export function Layout({ children }: LayoutProps) {
   const tabs = [
     { id: 'home', label: 'Início', icon: HomeIcon },
     { id: 'alerts', label: 'Alertas', icon: Bell },
+    { id: 'community', label: 'Chat', icon: MessageSquare },
     { id: 'contacts', label: 'Contatos', icon: Users },
     ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: ShieldAlert }] : []),
     { id: 'config', label: 'Config', icon: Settings },

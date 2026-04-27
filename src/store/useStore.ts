@@ -50,9 +50,10 @@ interface AppState {
   user: User | null;
   alerts: Alert[];
   messages: Record<string, Message[]>;
+  communityMessages: Message[];
   dismissedAlertIds: string[];
   contacts: Contact[];
-  currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config';
+  currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community';
   localUsers: (User & { password?: string })[];
   initialized: boolean;
   isLoading: boolean;
@@ -62,15 +63,17 @@ interface AppState {
   register: (user: Omit<User, 'id'>, pass: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
-  setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config') => void;
+  setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community') => void;
   setAlerts: (alerts: Alert[]) => void;
-  triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => void;
-  resolveAlert: (alertId: string, notes?: string) => void;
+  triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => Promise<void>;
+  resolveAlert: (alertId: string, notes?: string) => Promise<void>;
   dismissAlert: (alertId: string) => void;
   sendMessage: (alertId: string, text: string) => Promise<void>;
+  sendCommunityMessage: (text: string) => Promise<void>;
   subscribeToAlertMessages: (alertId: string) => () => void;
+  subscribeToCommunityMessages: () => () => void;
   resetAlerts: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => void;
+  updateProfile: (data: Partial<User>) => Promise<void>;
   addContact: (contact: Omit<Contact, 'id'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
@@ -106,6 +109,7 @@ export const useStore = create<AppState>()(
       user: null,
       alerts: [],
       messages: {},
+      communityMessages: [],
       dismissedAlertIds: [],
       contacts: MOCK_CONTACTS,
       currentTab: 'home',
@@ -135,18 +139,22 @@ export const useStore = create<AppState>()(
                 const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (userDoc.exists()) {
                   const userData = userDoc.data() as User;
-                  set({ user: userData, initialized: true });
+                  // Ensure ID is present and matches the auth UID
+                  const sanitizedUser = { ...userData, id: firebaseUser.uid };
+                  set({ user: sanitizedUser, initialized: true });
 
                   // Subscribe to alerts ONLY when user is authenticated
                   if (!unsubscribeAlerts) {
+                    // Use metadata.fromCache to prioritize speed if needed, 
+                    // but here we just ensure the listener is active
                     unsubscribeAlerts = onSnapshot(collection(db, 'alerts'), (snapshot) => {
                       const alerts = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                       })) as Alert[];
+                      // Immediate state update
                       set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp) });
                     }, (error) => {
-                      // Se der erro de permissão aqui, geralmente é porque o user deslogou ou mudou
                       console.error("Alerts sync error:", error);
                       if (error.code !== 'permission-denied') {
                         handleFirestoreError(error, OperationType.GET, 'alerts');
@@ -154,7 +162,6 @@ export const useStore = create<AppState>()(
                     });
                   }
                 } else {
-                  // Se o usuário autenticou mas não tem perfil, limpa o auth
                   set({ user: null, initialized: true });
                   if (unsubscribeAlerts) {
                     unsubscribeAlerts();
@@ -162,6 +169,7 @@ export const useStore = create<AppState>()(
                   }
                 }
               } catch (error) {
+                console.error("Error fetching user doc:", error);
                 handleFirestoreError(error, OperationType.GET, path);
               }
             } else {
@@ -187,7 +195,8 @@ export const useStore = create<AppState>()(
               const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
               if (userDoc.exists()) {
                 const userData = userDoc.data() as User;
-                set({ user: userData, currentTab: userData.role === 'admin' ? 'admin' : 'home' });
+                const sanitizedUser = { ...userData, id: userCredential.user.uid };
+                set({ user: sanitizedUser, currentTab: sanitizedUser.role === 'admin' ? 'admin' : 'home' });
               } else {
                 throw new Error("Perfil de usuário não encontrado no banco de dados.");
               }
@@ -261,9 +270,19 @@ export const useStore = create<AppState>()(
         const { user, alerts } = get();
         if (!user) return;
 
+        // Limpar dados sensíveis/pesados para o snapshot
+        const triggererSnapshot = {
+          id: user.id,
+          name: user.name,
+          sector: user.sector,
+          phone: user.phone,
+          // Limitamos o tamanho da foto no snapshot se for muito grande
+          photo: user.photo?.length > 50000 ? user.photo.substring(0, 500) + '...' : user.photo
+        };
+
         const alertData = {
           type,
-          triggeredBy: user,
+          triggeredBy: triggererSnapshot,
           timestamp: Date.now(),
           active: true,
           location: location || null,
@@ -350,6 +369,44 @@ export const useStore = create<AppState>()(
         });
       },
 
+      subscribeToCommunityMessages: () => {
+        if (!isFirebaseConfigured || !db) return () => {};
+
+        const q = collection(db, 'community_messages');
+        
+        return onSnapshot(q, (snapshot) => {
+          const newMessages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Message[];
+          
+          set({
+            communityMessages: newMessages.sort((a, b) => a.timestamp - b.timestamp)
+          });
+        }, (error) => {
+          if (error.code !== 'permission-denied') {
+            handleFirestoreError(error, OperationType.GET, 'community_messages');
+          }
+        });
+      },
+
+      sendCommunityMessage: async (text: string) => {
+        const { user } = get();
+        if (!user || !isFirebaseConfigured || !db) return;
+
+        try {
+          await addDoc(collection(db, 'community_messages'), {
+            senderId: user.id,
+            senderName: user.name,
+            senderPhoto: user.photo || '',
+            text,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, 'community_messages');
+        }
+      },
+
       resetAlerts: async () => {
         if (isFirebaseConfigured && db) {
           try {
@@ -364,10 +421,27 @@ export const useStore = create<AppState>()(
         }
       },
 
-      updateProfile: (data) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...data } : null
-        }));
+      updateProfile: async (data) => {
+        const { user } = get();
+        if (!user) return;
+
+        const previousUser = { ...user };
+        const updatedUser = { ...user, ...data };
+        
+        // Update local state immediately for responsiveness
+        set({ user: updatedUser });
+
+        if (isFirebaseConfigured && db) {
+          const path = `users/${user.id}`;
+          try {
+            await updateDoc(doc(db, 'users', user.id), data);
+          } catch (error) {
+            // Rollback local state on error
+            set({ user: previousUser });
+            console.error("Error updating profile in Firestore:", error);
+            handleFirestoreError(error, OperationType.UPDATE, path);
+          }
+        }
       },
 
       addContact: (contact) => {

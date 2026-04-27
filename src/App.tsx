@@ -7,15 +7,18 @@ import { Admin } from './components/Admin';
 import { Contacts } from './components/Contacts';
 import { AlertsList } from './components/AlertsList';
 import { Config } from './components/Config';
+import { CommunityChat } from './components/CommunityChat';
 import { AlertOverlay } from './components/AlertOverlay';
 import { InstallPWA } from './components/InstallPWA';
 import { UpdatePrompt } from './components/UpdatePrompt';
+import { audioManager } from './lib/audio';
 
 export default function App() {
   const { user, initialized, currentTab, init } = useStore();
 
   useEffect(() => {
     init();
+    audioManager.preload();
   }, [init]);
 
   if (!initialized) {
@@ -43,6 +46,7 @@ export default function App() {
         {currentTab === 'admin' && <Admin />}
         {currentTab === 'contacts' && <Contacts />}
         {currentTab === 'alerts' && <AlertsList />}
+        {currentTab === 'community' && <CommunityChat />}
         {currentTab === 'config' && <Config />}
       </Layout>
       

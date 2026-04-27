@@ -62,11 +62,10 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(incoming()) && 
                     (incoming().role == 'user' || request.auth.token.email == 'vinidoctor@gmail.com');
       
-      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+      allow update: if isOwner(userId) && 
                     incoming().role == existing().role &&
-                    incoming().email == existing().email &&
                     incoming().id == existing().id &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'sector', 'photo', 'fcmToken']);
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'phone', 'sector', 'photo', 'fcmToken']);
       
       allow delete: if isAdmin();
     }
@@ -75,13 +74,12 @@ service cloud.firestore {
     match /alerts/{alertId} {
       function isValidAlert(data) {
         return data.keys().hasAll(['type', 'triggeredBy', 'timestamp', 'active']) &&
-               data.keys().size() >= 4 && data.keys().size() <= 9 &&
+               data.keys().size() >= 4 && data.keys().size() <= 10 &&
                data.type in ['emergency', 'fire', 'firstaid', 'simulated', 'lockdown'] &&
                data.triggeredBy.id is string &&
                data.timestamp is int &&
                data.active is bool &&
-               (!data.keys().hasAny(['resolvedAt']) || data.resolvedAt is int) &&
-               (!data.keys().hasAny(['notes']) || data.notes is string || data.notes == null) &&
+               (!data.keys().hasAny(['location']) || data.location is map || data.location == null) &&
                (!data.keys().hasAny(['specificLocation']) || data.specificLocation is string || data.specificLocation == null);
       }
 
@@ -91,13 +89,11 @@ service cloud.firestore {
       
       allow create: if isSignedIn() && isValidAlert(incoming()) && 
                     incoming().triggeredBy.id == request.auth.uid &&
-                    incoming().active == true &&
-                    incoming().timestamp == request.time.toMillis();
+                    incoming().active == true;
       
       allow update: if (isAdmin() || (isSignedIn() && existing().triggeredBy.id == request.auth.uid)) &&
                     incoming().diff(existing()).affectedKeys().hasOnly(['active', 'resolvedAt', 'notes']) &&
-                    incoming().active == false &&
-                    incoming().resolvedAt == request.time.toMillis();
+                    incoming().active == false;
 
       allow delete: if isAdmin();
 
@@ -113,12 +109,28 @@ service cloud.firestore {
         }
 
         allow read: if isSignedIn();
-        allow create: if isSignedIn() && isValidMessage(incoming()) && 
-                      incoming().timestamp == request.time.toMillis();
+        allow create: if isSignedIn() && isValidMessage(incoming());
         allow update, delete: if false; // Messages are immutable for emergency records
       }
     }
     
+    // --- Community Messages Rules (Global Chat) ---
+    match /community_messages/{messageId} {
+      function isValidCommunityMessage(data) {
+        return data.keys().hasAll(['senderId', 'senderName', 'text', 'timestamp', 'senderPhoto']) &&
+               data.keys().size() == 5 &&
+               data.senderId == request.auth.uid &&
+               data.senderName is string && data.senderName.size() > 0 &&
+               data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
+               data.timestamp is int &&
+               data.senderPhoto is string;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidCommunityMessage(incoming());
+      allow update, delete: if isAdmin() || (isSignedIn() && existing().senderId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['text']));
+    }
+
     // Test collection for connection check
     match /test/connection {
       allow read: if true;

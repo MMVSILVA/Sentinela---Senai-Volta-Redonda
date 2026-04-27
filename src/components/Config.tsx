@@ -13,6 +13,7 @@ export function Config() {
     sector: user?.sector || '',
   });
   const [photo, setPhoto] = useState<string>(user?.photo || '');
+  const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,17 +24,53 @@ export function Config() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhoto(reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const compressedPhoto = canvas.toDataURL('image/jpeg', 0.7);
+          setPhoto(compressedPhoto);
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({ ...formData, photo });
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    setIsSaving(true);
+    try {
+      await updateProfile({ ...formData, photo });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err: any) {
+      console.error(err);
+      alert("Erro ao salvar o perfil. Verifique se a foto não é muito grande.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -82,10 +119,10 @@ export function Config() {
           <input
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({...formData, email: e.target.value})}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            required
+            readOnly
+            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-slate-500 cursor-not-allowed"
           />
+          <p className="text-[10px] text-slate-500 mt-1">O email não pode ser alterado diretamente.</p>
         </div>
 
         <div>
@@ -112,10 +149,11 @@ export function Config() {
 
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-4 py-3 transition-colors"
+          disabled={isSaving}
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-4 py-3 transition-colors disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {isSaved ? 'Salvo com sucesso!' : 'Salvar Perfil'}
+          {isSaving ? 'Salvando...' : isSaved ? 'Salvo com sucesso!' : 'Salvar Perfil'}
         </button>
       </form>
 
