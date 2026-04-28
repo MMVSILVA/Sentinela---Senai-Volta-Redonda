@@ -76,29 +76,30 @@ export function Home() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col p-4 sm:p-6 pb-32">
-      <header className="flex items-center gap-6 mb-10 bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[160px]">
+    <div className="flex flex-col p-3 sm:p-6 pb-32">
+      <header className="flex items-center gap-3 sm:gap-6 mb-8 sm:mb-10 bg-slate-800/60 p-4 sm:p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[120px] sm:min-h-[160px]">
         <div className="relative z-10 flex-shrink-0">
           <div className="p-1 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-500 shadow-xl">
             <img 
               src={user.photo} 
               alt={user.name} 
-              className="w-24 h-24 rounded-xl object-cover border border-white/10 shadow-2xl transition-transform group-hover:scale-105 duration-500"
+              className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border border-white/10 shadow-2xl transition-transform group-hover:scale-105 duration-500"
             />
           </div>
-          <div className="absolute -bottom-1 -right-1 bg-red-500 w-7 h-7 rounded-full border-4 border-slate-900 flex items-center justify-center shadow-lg">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          <div className="absolute -bottom-1 -right-1 bg-red-500 w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 sm:border-4 border-slate-900 flex items-center justify-center shadow-lg">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white animate-pulse" />
           </div>
         </div>
         <div className="z-10 flex-1 min-w-0 py-1 flex flex-col justify-center">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 w-fit">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Sentinela - Em Operação
-            </h1>
+          <div className="flex flex-col gap-1 mb-1.5 sm:mb-3">
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-0.5">Sentinela</span>
+            <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 w-fit">
+              <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[8px] sm:text-[10px] font-black text-red-500 uppercase tracking-widest leading-none">Em Operação</span>
+            </div>
           </div>
-          <h2 className="text-2xl font-black text-white leading-tight tracking-tight mb-1 break-words line-clamp-2">{user.name}</h2>
-          <p className="text-slate-400 text-sm font-bold uppercase tracking-tighter opacity-80 break-words">{user.sector}</p>
+          <h2 className="text-base sm:text-lg md:text-2xl font-black text-white leading-tight tracking-tight mb-0.5 sm:mb-1 break-words">{user.name}</h2>
+          <p className="text-slate-400 text-[9px] sm:text-sm font-bold uppercase tracking-tighter opacity-80 break-words">{user.sector}</p>
         </div>
         <motion.div 
           animate={{ 
@@ -109,9 +110,12 @@ export function Home() {
             repeat: Infinity, 
             ease: "easeInOut" 
           }}
-          className="flex items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 z-10 transition-all group-hover:bg-white/20 shadow-lg"
+          className="flex-shrink-0 flex items-center justify-center p-2 sm:p-3 rounded-2xl bg-white/5 border border-white/10 z-10 transition-all group-hover:bg-white/20 shadow-lg"
         >
-          <Logo size="xl" />
+          <Logo size="lg" className="sm:hidden" />
+          <div className="hidden sm:block">
+            <Logo size="xl" />
+          </div>
         </motion.div>
       </header>
 
