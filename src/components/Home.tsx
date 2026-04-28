@@ -2,21 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore, AlertType } from '../store/useStore';
 import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock, Globe, Smartphone, Bell, BookOpen, Activity, Map, Wind, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { NotificationPermission } from './NotificationPermission';
 import { Logo } from './Logo';
 import { SafetyGuideModal } from './SafetyGuideModal';
 
 export function Home() {
-  const { user, triggerAlert, events, subscribeToEvents, setTab } = useStore();
+  const { user, triggerAlert, events, subscribeToEvents, setTab, syncGoogleEvents } = useStore();
   const [pressingType, setPressingType] = useState<AlertType | null>(null);
   const [progress, setProgress] = useState(0);
   const [specificLocation, setSpecificLocation] = useState('');
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = subscribeToEvents();
-    return () => unsub();
-  }, [subscribeToEvents]);
+    if (user?.googleTokens) {
+      syncGoogleEvents();
+    }
+  }, [user?.googleTokens, syncGoogleEvents]);
 
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,29 +76,35 @@ export function Home() {
 
   return (
     <div className="flex flex-col h-full p-6">
-      <div className="-mx-6 -mt-6 mb-6">
-        <NotificationPermission />
-      </div>
-      <header className="flex items-center gap-4 mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-lg relative overflow-hidden group">
+      <header className="flex items-center gap-6 mb-10 bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[140px]">
         <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
-          <Logo size="lg" className="rotate-12" />
+          <Logo size="xl" className="rotate-12" />
         </div>
-        <img 
-          src={user.photo} 
-          alt={user.name} 
-          className="w-14 h-14 rounded-full object-cover border-2 border-slate-600 shadow-md z-10"
-        />
-        <div className="z-10 flex-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
+        <div className="relative z-10 flex-shrink-0">
+          <div className="p-1 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-500 shadow-xl">
+            <img 
+              src={user.photo} 
+              alt={user.name} 
+              className="w-24 h-24 rounded-xl object-cover border border-white/10 shadow-2xl transition-transform group-hover:scale-105 duration-500"
+            />
+          </div>
+          <div className="absolute -bottom-1 -right-1 bg-red-500 w-7 h-7 rounded-full border-4 border-slate-900 flex items-center justify-center shadow-lg">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          </div>
+        </div>
+        <div className="z-10 flex-1 min-w-0 py-2">
+          <div className="flex items-center gap-2 mb-3">
+            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               Sentinela - Em Operação
             </h1>
           </div>
-          <h2 className="text-xl font-black text-white leading-tight tracking-tight">{user.name}</h2>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-tighter opacity-80">{user.sector}</p>
+          <h2 className="text-2xl font-black text-white leading-tight tracking-tight mb-1">{user.name}</h2>
+          <p className="text-slate-400 text-sm font-bold uppercase tracking-tighter opacity-80">{user.sector}</p>
         </div>
-        <Logo size="sm" className="hidden sm:flex z-10" />
+        <div className="hidden md:flex items-center justify-center p-2 bg-white/5 rounded-2xl border border-white/5 z-10 transition-all group-hover:bg-white/10">
+          <Logo size="xl" />
+        </div>
       </header>
 
       <div className="mb-8">
@@ -117,11 +123,11 @@ export function Home() {
       <div className="mb-10">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-            <Zap className="w-3 h-3 text-amber-400" />
+            <Activity className="w-3 h-3 text-blue-500" />
             Intelligence Feed
           </h3>
           <button 
-            onClick={() => setTab('alerts')} 
+            onClick={() => setTab('calendar')} 
             className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-blue-300 transition-colors"
           >
             Ver Calendário
@@ -129,28 +135,59 @@ export function Home() {
         </div>
         
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-          {/* Calendar Events (Priority) */}
-          {events.length > 0 && events.map(event => (
-            <div key={event.id} className="min-w-[280px] snap-center bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-500/30 p-4 rounded-2xl shadow-xl border-l-4 border-l-blue-500">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-blue-500/20 p-2 rounded-lg">
-                   <Calendar className="w-5 h-5 text-blue-400" />
+          {/* Calendar Events (Priority & Horizontal) */}
+          {events && events.length > 0 && events
+            .filter(e => new Date(e.date + 'T23:59:59') >= new Date())
+            .sort((a,b) => a.date.localeCompare(b.date))
+            .map((event, idx) => (
+              <div 
+                key={event.id} 
+                onClick={() => setTab('calendar')}
+                className={cn(
+                  "min-w-[280px] snap-center border p-4 rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 group",
+                  idx === 0 
+                    ? "bg-gradient-to-br from-indigo-900/40 to-slate-900 border-indigo-500/40 border-l-4 border-l-blue-500" 
+                    : "bg-slate-800/40 border-slate-700/50 hover:border-slate-600"
+                )}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={cn("p-2 rounded-lg", idx === 0 ? "bg-blue-500/20" : "bg-slate-700/30")}>
+                    <Calendar className={cn("w-5 h-5", idx === 0 ? "text-blue-400" : "text-slate-400")} />
+                  </div>
+                  <h4 className="font-bold text-white text-sm truncate group-hover:text-blue-400 transition-colors">{event.title}</h4>
                 </div>
-                <h4 className="font-bold text-white text-sm truncate">{event.title}</h4>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-2xl font-black text-white">
+                    {event.date ? new Date(event.date + 'T12:00:00').getDate() : '--'}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                    {event.date ? new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' }) : 'Data Indeterminada'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span className="truncate max-w-[140px]">{event.location || 'Local a definir'}</span>
+                  {idx === 0 && <span className="text-blue-500 animate-pulse">Próximo Evento</span>}
+                </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-white">{new Date(event.date).getDate()}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
-                  {new Date(event.date).toLocaleDateString('pt-BR', { month: 'long' })} • {event.location}
-                </span>
-              </div>
-              <p className="text-slate-400 text-[10px] mt-1 font-black uppercase tracking-widest opacity-80 line-clamp-1">
-                {event.description}
-              </p>
-            </div>
-          ))}
+            ))
+          }
 
           {/* Fixed Knowledge Cards */}
+          <div 
+            onClick={() => setTab('calendar')}
+            className="min-w-[260px] snap-center bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/30 p-4 rounded-2xl shadow-xl cursor-pointer hover:border-blue-500/60 transition-all"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-blue-500/20 p-2 rounded-lg">
+                <Calendar className="w-5 h-5 text-blue-400" />
+              </div>
+              <h4 className="font-bold text-white text-sm">Marcar Novo Evento</h4>
+            </div>
+            <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
+              Agende treinamentos, vistorias ou reuniões de segurança.
+            </p>
+          </div>
+
           <div 
             onClick={() => setActiveGuide('fire')}
             className="min-w-[260px] snap-center bg-gradient-to-br from-orange-900/20 to-slate-900 border border-orange-500/30 p-4 rounded-2xl shadow-xl cursor-pointer hover:border-orange-500/60 transition-all"
@@ -161,7 +198,7 @@ export function Home() {
               </div>
               <h4 className="font-bold text-white text-sm">Combate a Incêndio</h4>
             </div>
-            <p className="text-slate-300 text-xs leading-relaxed">
+            <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
               Primeiras ações e rotas de fuga. Saiba como agir em segundos.
             </p>
           </div>
@@ -176,7 +213,7 @@ export function Home() {
               </div>
               <h4 className="font-bold text-white text-sm">Primeiros Socorros</h4>
             </div>
-            <p className="text-slate-300 text-xs leading-relaxed">
+            <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
               Manobra de Heimlich e RCP. Conheça as técnicas vitais.
             </p>
           </div>
@@ -191,28 +228,12 @@ export function Home() {
               </div>
               <h4 className="font-bold text-white text-sm">Protocolo Lockdown</h4>
             </div>
-            <p className="text-slate-300 text-xs leading-relaxed">
+            <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
               O método "Correr, Esconder, Lutar" para situações críticas.
-            </p>
-          </div>
-
-          <div 
-            onClick={() => setActiveGuide('risk_map')}
-            className="min-w-[260px] snap-center bg-gradient-to-br from-amber-900/20 to-slate-900 border border-amber-500/30 p-4 rounded-2xl shadow-xl cursor-pointer hover:border-amber-500/60 transition-all"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-amber-500/20 p-2 rounded-lg">
-                <Map className="w-5 h-5 text-amber-500" />
-              </div>
-              <h4 className="font-bold text-white text-sm">Mapa de Riscos</h4>
-            </div>
-            <p className="text-slate-300 text-xs leading-relaxed">
-              Legenda de classificação por zonas de perigo e cores.
             </p>
           </div>
         </div>
       </div>
-
       <div className="flex-1 flex flex-col items-center justify-center">
         <p className="text-slate-300 mb-8 text-lg font-medium text-center">
           Pressione e segure para ativar
@@ -328,13 +349,13 @@ export function Home() {
         </h3>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { id: 'fire', icon: Flame, label: 'Combate Incêndio', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-            { id: 'first_aid', icon: Activity, label: 'Primeiros Socorros', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-            { id: 'evacuation', icon: Wind, label: 'Plano de Evasão', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-            { id: 'risk_map', icon: Map, label: 'Mapa de Riscos', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { id: 'lockdown', icon: Lock, label: 'Protocolo Lockdown', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-            { id: 'health', icon: Activity, label: 'Saúde & Bem-Estar', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-            { id: 'contact', icon: Phone, label: 'Fluxo Emergência', color: 'text-rose-500', bg: 'bg-rose-500/10' }
+            { id: 'fire', Icon: Flame, label: 'Combate Incêndio', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+            { id: 'first_aid', Icon: Activity, label: 'Primeiros Socorros', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+            { id: 'evacuation', Icon: Wind, label: 'Plano de Evasão', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+            { id: 'risk_map', Icon: Map, label: 'Mapa de Riscos', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            { id: 'lockdown', Icon: Lock, label: 'Protocolo Lockdown', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+            { id: 'health', Icon: Activity, label: 'Saúde & Bem-Estar', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+            { id: 'contact', Icon: Phone, label: 'Fluxo Emergência', color: 'text-rose-500', bg: 'bg-rose-500/10' }
           ].map(guide => (
             <button 
               key={guide.id}
@@ -345,7 +366,7 @@ export function Home() {
                 "border-white/5 hover:border-white/20"
               )}
             >
-              <guide.icon className={cn("w-5 h-5", guide.color)} />
+              <guide.Icon className={cn("w-5 h-5", guide.color)} />
               <span className="text-[10px] font-black uppercase tracking-tight text-white leading-tight">{guide.label}</span>
             </button>
           ))}

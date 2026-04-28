@@ -8,6 +8,7 @@ import { Contacts } from './components/Contacts';
 import { AlertsList } from './components/AlertsList';
 import { Config } from './components/Config';
 import { CommunityChat } from './components/CommunityChat';
+import { CalendarView } from './components/CalendarView';
 import { AlertOverlay } from './components/AlertOverlay';
 import { InstallPWA } from './components/InstallPWA';
 import { audioManager } from './lib/audio';
@@ -47,22 +48,30 @@ export default function App() {
 
   if (!user) {
     return (
-      <>
+      <div className="min-h-screen bg-slate-950">
         <Login />
         <InstallPWA />
-      </>
+      </div>
     );
   }
+
+  const renderTab = () => {
+    switch (currentTab) {
+      case 'home': return <Home />;
+      case 'admin': return <Admin />;
+      case 'contacts': return <Contacts />;
+      case 'alerts': return <AlertsList />;
+      case 'calendar': return <CalendarView />;
+      case 'community': return <CommunityChat />;
+      case 'config': return <Config />;
+      default: return <Home />;
+    }
+  };
 
   return (
     <>
       <Layout>
-        {currentTab === 'home' && <Home />}
-        {currentTab === 'admin' && <Admin />}
-        {currentTab === 'contacts' && <Contacts />}
-        {currentTab === 'alerts' && <AlertsList />}
-        {currentTab === 'community' && <CommunityChat />}
-        {currentTab === 'config' && <Config />}
+        {renderTab()}
       </Layout>
       
       <AlertOverlay />

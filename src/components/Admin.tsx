@@ -684,9 +684,12 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
           {showEventModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
               <div className="bg-[#161B22] border border-slate-800 rounded-[32px] w-full max-w-md p-8 shadow-3xl">
-                <h3 className="text-xl font-black text-white mb-6">
+                <h3 className="text-xl font-black text-white mb-2">
                   {editingEventId ? 'Editar Evento' : 'Novo Evento de Segurança'}
                 </h3>
+                <p className="text-slate-500 text-xs mb-6">
+                  Ao salvar, uma notificação push será enviada para todos os usuários ativos no sistema.
+                </p>
                 <form onSubmit={handleSaveEvent} className="space-y-5">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Título do Evento</label>

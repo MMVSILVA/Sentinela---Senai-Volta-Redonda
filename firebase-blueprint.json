@@ -51,6 +51,21 @@
         "timestamp": { "type": "number" }
       },
       "required": ["senderId", "senderName", "text", "timestamp"]
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "Safety drill or important date",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string", "enum": ["drill", "training", "inspection", "event"] },
+        "location": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["title", "date", "type", "timestamp"]
     }
   },
   "firestore": {
@@ -65,6 +80,10 @@
     "/alerts/{alertId}/messages/{messageId}": {
       "schema": "Message",
       "description": "Chat messages for a specific alert"
+    },
+    "/events/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "Lista de eventos e treinamentos (Aberto para todos os usuários)"
     }
   }
 }

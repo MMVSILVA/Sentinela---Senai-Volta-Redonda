@@ -30,6 +30,7 @@ export type User = {
   photo: string;
   role: UserRole;
   fcmToken?: string;
+  googleTokens?: any;
 };
 
 export type Alert = {
@@ -84,7 +85,7 @@ interface AppState {
   dismissedAlertIds: string[];
   contacts: Contact[];
   events: CalendarEvent[];
-  currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community';
+  currentTab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community' | 'calendar';
   localUsers: (User & { password?: string })[];
   initialized: boolean;
   isLoading: boolean;
@@ -94,7 +95,7 @@ interface AppState {
   register: (user: Omit<User, 'id'>, pass: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
-  setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community') => void;
+  setTab: (tab: 'home' | 'alerts' | 'contacts' | 'admin' | 'config' | 'community' | 'calendar') => void;
   setAlerts: (alerts: Alert[]) => void;
   triggerAlert: (type: AlertType, location?: { lat: number; lng: number }, specificLocation?: string) => Promise<void>;
   resolveAlert: (alertId: string, notes?: string) => Promise<void>;
@@ -113,6 +114,8 @@ interface AppState {
   resetAlerts: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateFCMToken: () => Promise<void>;
+  setGoogleTokens: (tokens: any) => Promise<void>;
+  syncGoogleEvents: () => Promise<void>;
   addContact: (contact: Omit<Contact, 'id'>) => void;
   updateContact: (id: string, contact: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
@@ -179,12 +182,13 @@ export const useStore = create<AppState>()(
                 const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (userDoc.exists()) {
                   const userData = userDoc.data() as User;
-                  // Force admin role for specific emails
-                  const isAdminEmail = ['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br'].includes(userData.email.toLowerCase());
+                  // Force admin role for specific emails with safety check
+                  const userEmail = userData.email || '';
+                  const isAdminEmail = ['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br'].includes(userEmail.toLowerCase());
                   const sanitizedUser = { 
                     ...userData, 
                     id: firebaseUser.uid,
-                    role: isAdminEmail ? 'admin' : userData.role 
+                    role: isAdminEmail ? 'admin' : (userData.role || 'user')
                   } as User;
                   
                   set({ user: sanitizedUser, initialized: true });
@@ -216,6 +220,7 @@ export const useStore = create<AppState>()(
                 }
               } catch (error) {
                 console.error("Error fetching user doc:", error);
+                set({ initialized: true }); // Ensure app doesn't hang
                 handleFirestoreError(error, OperationType.GET, path);
               }
             } else {
@@ -647,6 +652,54 @@ export const useStore = create<AppState>()(
           }
         } catch (error) {
           console.error("Failed to get FCM token:", error);
+        }
+      },
+
+      setGoogleTokens: async (tokens) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await get().updateProfile({ googleTokens: tokens });
+        await get().syncGoogleEvents();
+      },
+
+      syncGoogleEvents: async () => {
+        const { user, events } = get();
+        if (!user?.googleTokens) return;
+
+        try {
+          const response = await fetch('/api/calendar/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: user.googleTokens })
+          });
+
+          if (!response.ok) throw new Error("Sync failed");
+          
+          const googleEvents = await response.json();
+          
+          // Map google events to our format and add to firestore if not exists
+          for (const gEvent of googleEvents) {
+            const date = gEvent.start.dateTime || gEvent.start.date;
+            if (!date) continue;
+
+            const dateStr = date.split('T')[0];
+            
+            // Check if already exists in our events list
+            const exists = events.find(e => e.title === gEvent.summary && e.date === dateStr);
+            
+            if (!exists) {
+              await get().addEvent({
+                title: gEvent.summary,
+                description: gEvent.description || 'Sincronizado do Google Calendar',
+                date: dateStr,
+                type: 'event',
+                location: gEvent.location || ''
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Calendar sync error:", error);
         }
       },
 

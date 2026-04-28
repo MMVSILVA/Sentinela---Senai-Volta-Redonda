@@ -5,7 +5,7 @@ import { messaging, db, isFirebaseConfigured, auth } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export function NotificationPermission() {
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [permission, setPermission] = useState<globalThis.NotificationPermission>('default');
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isIOS, setIsIOS] = useState(false);

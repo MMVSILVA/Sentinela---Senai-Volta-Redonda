@@ -132,6 +132,24 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && existing().senderId == request.auth.uid);
     }
 
+    // --- Calendar Event Rules ---
+    match /events/{eventId} {
+      function isValidEvent(data) {
+        return data.keys().hasAll(['title', 'date', 'type', 'timestamp']) &&
+               data.keys().size() >= 4 && data.keys().size() <= 8 &&
+               data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+               data.date is string &&
+               data.type in ['drill', 'training', 'inspection', 'event'] &&
+               data.timestamp is int &&
+               (!data.keys().hasAny(['location']) || data.location is string) &&
+               (!data.keys().hasAny(['description']) || data.description is string);
+      }
+
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidEvent(incoming());
+      allow delete: if isAdmin();
+    }
+
     // Test collection for connection check
     match /test/connection {
       allow read: if true;
