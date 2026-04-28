@@ -9,8 +9,11 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Verifica se o Firebase está configurado
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
+import { initializeFirestore } from 'firebase/firestore';
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const analytics = firebaseConfig.measurementId ? getAnalytics(app) : null;

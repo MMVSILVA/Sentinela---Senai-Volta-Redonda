@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { useStore, AlertType } from '../store/useStore';
 import { AlertCircle, Flame, Phone, ShieldAlert, Siren, Plus, Ambulance, Zap, Lock, Globe, Smartphone, Bell, BookOpen, Activity, Map, Wind, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -75,11 +76,8 @@ export function Home() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-full p-6">
-      <header className="flex items-center gap-6 mb-10 bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[140px]">
-        <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
-          <Logo size="xl" className="rotate-12" />
-        </div>
+    <div className="flex flex-col p-4 sm:p-6 pb-32">
+      <header className="flex items-center gap-6 mb-10 bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[160px]">
         <div className="relative z-10 flex-shrink-0">
           <div className="p-1 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-500 shadow-xl">
             <img 
@@ -92,36 +90,46 @@ export function Home() {
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
           </div>
         </div>
-        <div className="z-10 flex-1 min-w-0 py-2">
-          <div className="flex items-center gap-2 mb-3">
-            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+        <div className="z-10 flex-1 min-w-0 py-1 flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 w-fit">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               Sentinela - Em Operação
             </h1>
           </div>
-          <h2 className="text-2xl font-black text-white leading-tight tracking-tight mb-1">{user.name}</h2>
-          <p className="text-slate-400 text-sm font-bold uppercase tracking-tighter opacity-80">{user.sector}</p>
+          <h2 className="text-2xl font-black text-white leading-tight tracking-tight mb-1 break-words line-clamp-2">{user.name}</h2>
+          <p className="text-slate-400 text-sm font-bold uppercase tracking-tighter opacity-80 break-words">{user.sector}</p>
         </div>
-        <div className="hidden md:flex items-center justify-center p-2 bg-white/5 rounded-2xl border border-white/5 z-10 transition-all group-hover:bg-white/10">
+        <motion.div 
+          animate={{ 
+            y: [0, -5, 0],
+          }}
+          transition={{ 
+            duration: 3, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+          className="flex items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 z-10 transition-all group-hover:bg-white/20 shadow-lg"
+        >
           <Logo size="xl" />
-        </div>
+        </motion.div>
       </header>
 
-      <div className="mb-8">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          Localização exata do incidente (Opcional)
+      <div className="mb-8 sm:mb-14">
+        <label className="block text-[10px] sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-3">
+          Localização exata (Opcional)
         </label>
         <input
           type="text"
           value={specificLocation}
           onChange={(e) => setSpecificLocation(e.target.value)}
-          placeholder="Ex: Andar 2, Sala de Reuniões B"
-          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500 placeholder:text-slate-500"
+          placeholder="Ex: Andar 2, Sala B"
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 sm:py-3 text-xs sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-red-500 placeholder:text-slate-500"
         />
       </div>
 
-      <div className="mb-10">
-        <div className="flex justify-between items-center mb-4">
+      <div className="mb-10 sm:mb-16">
+        <div className="flex justify-between items-center mb-3 sm:mb-6">
           <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
             <Activity className="w-3 h-3 text-blue-500" />
             Intelligence Feed
@@ -342,12 +350,12 @@ export function Home() {
         </div>
       </div>
 
-      <div className="mt-8 mb-4">
-        <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+      <div className="mt-10 sm:mt-16 mb-6 sm:mb-10">
+        <h3 className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-3 sm:mb-6 flex items-center gap-2">
           <BookOpen className="w-3 h-3 text-blue-400" />
           Safety Intelligence Library
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {[
             { id: 'fire', Icon: Flame, label: 'Combate Incêndio', color: 'text-orange-500', bg: 'bg-orange-500/10' },
             { id: 'first_aid', Icon: Activity, label: 'Primeiros Socorros', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -373,8 +381,8 @@ export function Home() {
         </div>
       </div>
 
-      <div className="mt-auto pt-8">
-        <h3 className="text-slate-400 text-sm font-medium mb-3 text-center">Números de Emergência</h3>
+      <div className="pt-10 sm:pt-24">
+        <h3 className="text-slate-400 text-xs sm:text-sm font-medium mb-3 sm:mb-6 text-center">Números de Emergência</h3>
         <div className="grid grid-cols-2 gap-3">
           <a href="tel:193" className="flex flex-col items-center justify-center gap-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl p-3 transition-colors">
             <Flame className="w-6 h-6 text-red-500" />

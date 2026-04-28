@@ -26,7 +26,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="h-screen bg-slate-900 flex flex-col font-sans overflow-hidden">
       <NotificationManager />
-      <main className={cn("flex-1 relative", !isChat && "overflow-y-auto pb-20")}>
+      <main className={cn("flex-1 relative", !isChat && "overflow-y-auto pb-48")}>
         {children}
       </main>
 
