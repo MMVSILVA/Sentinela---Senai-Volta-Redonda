@@ -208,10 +208,10 @@ export function Home() {
               <div className="bg-orange-500/20 p-2 rounded-lg">
                 <Flame className="w-5 h-5 text-orange-500" />
               </div>
-              <h4 className="font-bold text-white text-sm">Combate a Incêndio</h4>
+              <h4 className="font-bold text-white text-sm">Incêndio</h4>
             </div>
             <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
-              Primeiras ações e rotas de fuga. Saiba como agir em segundos.
+              Avaliação imediata e combate inicial. Saiba como agir em segundos.
             </p>
           </div>
 
@@ -231,17 +231,32 @@ export function Home() {
           </div>
 
           <div 
+            onClick={() => setActiveGuide('evacuation')}
+            className="min-w-[260px] snap-center bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/30 p-4 rounded-2xl shadow-xl cursor-pointer hover:border-blue-500/60 transition-all"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-blue-500/20 p-2 rounded-lg">
+                <Wind className="w-5 h-5 text-blue-400" />
+              </div>
+              <h4 className="font-bold text-white text-sm">Evacuação</h4>
+            </div>
+            <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
+              Plano de saída ordenada e ponto de encontro seguro.
+            </p>
+          </div>
+
+          <div 
             onClick={() => setActiveGuide('lockdown')}
             className="min-w-[260px] snap-center bg-gradient-to-br from-indigo-900/20 to-slate-900 border border-indigo-500/30 p-4 rounded-2xl shadow-xl cursor-pointer hover:border-indigo-500/60 transition-all"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="bg-indigo-500/20 p-2 rounded-lg">
+              <div className="bg-indigo-500/10 p-2 rounded-lg">
                 <Lock className="w-5 h-5 text-indigo-400" />
               </div>
-              <h4 className="font-bold text-white text-sm">Protocolo Lockdown</h4>
+              <h4 className="font-bold text-white text-sm">Lockdown</h4>
             </div>
             <p className="text-slate-300 text-xs leading-relaxed line-clamp-2">
-              O método "Correr, Esconder, Lutar" para situações críticas.
+              Procedimentos de bloqueio e segurança total em ambiente interno.
             </p>
           </div>
         </div>
@@ -361,11 +376,11 @@ export function Home() {
         </h3>
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {[
-            { id: 'fire', Icon: Flame, label: 'Combate Incêndio', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+            { id: 'fire', Icon: Flame, label: 'Incêndio', color: 'text-orange-500', bg: 'bg-orange-500/10' },
             { id: 'first_aid', Icon: Activity, label: 'Primeiros Socorros', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-            { id: 'evacuation', Icon: Wind, label: 'Plano de Evasão', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+            { id: 'evacuation', Icon: Wind, label: 'Evacuação', color: 'text-blue-500', bg: 'bg-blue-500/10' },
             { id: 'risk_map', Icon: Map, label: 'Mapa de Riscos', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { id: 'lockdown', Icon: Lock, label: 'Protocolo Lockdown', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+            { id: 'lockdown', Icon: Lock, label: 'Lockdown', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
             { id: 'health', Icon: Activity, label: 'Saúde & Bem-Estar', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
             { id: 'contact', Icon: Phone, label: 'Fluxo Emergência', color: 'text-rose-500', bg: 'bg-rose-500/10' }
           ].map(guide => (

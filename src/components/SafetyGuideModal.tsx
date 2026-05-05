@@ -9,25 +9,19 @@ interface SafetyGuideModalProps {
 
 const GUIDES_CONTENT: Record<string, { title: string, icon: any, color: string, content: React.ReactNode }> = {
   fire: {
-    title: 'Combate a Incêndio',
+    title: 'Incêndio',
     icon: Flame,
     color: 'text-orange-500',
     content: (
       <div className="space-y-4">
         <section className="bg-orange-500/5 p-4 rounded-xl border border-orange-500/10">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-orange-500 mb-2">Primeiras Ações</h4>
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-orange-500 mb-2">1. Avaliar e Alertar (Ação Imediata)</h4>
           <ul className="text-sm text-slate-300 space-y-2">
-            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> Mantenha a calma e acione o alarme de incêndio.</li>
-            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> Ligue imediatamente para os Bombeiros (193).</li>
-            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> Se o fogo for pequeno, use o extintor adequado (Pó ABC para geral).</li>
-          </ul>
-        </section>
-        <section className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-2">Evacuação Segura</h4>
-          <ul className="text-sm text-slate-300 space-y-2">
-            <li className="flex gap-2 items-start"><ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" /> Nunca utilize os elevadores.</li>
-            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" /> Se houver fumaça, caminhe agachado próximo ao chão.</li>
-            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" /> Toque as portas antes de abrir: se estiverem quentes, não abra.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> **Mantenha a calma:** Evite pânico para tomar decisões seguras.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> **Acione o alarme:** Se houver um sistema de alarme de incêndio, acione-o.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> **Avalie o risco:** Se o fogo estiver alto, houver muita fumaça ou o ambiente estiver muito quente, não tente apagar.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> **Comunique:** Avise as pessoas próximas e peça para alguém ligar para o Corpo de Bombeiros (193) imediatamente.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> **Evacue o local:** com calma e de forma ordenada.</li>
           </ul>
         </section>
       </div>
@@ -40,27 +34,47 @@ const GUIDES_CONTENT: Record<string, { title: string, icon: any, color: string, 
     content: (
       <div className="space-y-4">
         <section className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-emerald-500 mb-2">Engasgo (Manobra de Heimlich)</h4>
-          <p className="text-sm text-slate-300">Posicione-se atrás da pessoa, envolva os braços na cintura e aplique compressões rápidas para cima e para dentro, acima do umbigo.</p>
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-emerald-500 mb-2">Avaliação da Cena (Segurança)</h4>
+          <ul className="text-sm text-slate-300 space-y-2">
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> **Verifique o local:** Antes de se aproximar, garanta que o ambiente é seguro para você e para a vítima (risco de trânsito, fogo, fios elétricos, produtos tóxicos).</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> **Não se torne uma vítima:** Se a cena for perigosa, não se aproxime e aguarde ajuda especializada.</li>
+          </ul>
         </section>
         <section className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-2">Parada Cardiorrespiratória (RCP)</h4>
-          <p className="text-sm text-slate-300 mb-2">1. Verifique a consciência.</p>
-          <p className="text-sm text-slate-300 mb-2">2. Peça para alguém ligar 192 e buscar um DEA.</p>
-          <p className="text-sm text-slate-300">3. Inicie compressões torácicas: 100 a 120 por minuto no centro do peito.</p>
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-2">Avaliação da Vítima (Consciência e Respiração)</h4>
+          <ul className="text-sm text-slate-300 space-y-2">
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" /> **Chame a vítima:** Verifique se ela responde.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" /> **Verifique a respiração:** Observe se há movimento no peito.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> **Inconsciência:** Se a vítima não responder e não respirar (ou apenas ofegar), inicie a reanimação.</li>
+          </ul>
+        </section>
+        <section className="bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20">
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-emerald-500 mb-2">Acionar Socorro Especializado (192 ou 193)</h4>
+          <ul className="text-sm text-slate-300 space-y-2">
+            <li className="flex gap-2 items-start"><Phone className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> Ligue para o **SAMU (192)** para emergências clínicas (infarto, AVC, convulsão).</li>
+            <li className="flex gap-2 items-start"><Phone className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> Ligue para os **Bombeiros (193)** para acidentes, traumas, incêndios ou vítimas presas.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" /> Ao ligar, informe o local exato, número de vítimas e estado aparente delas.</li>
+          </ul>
         </section>
       </div>
     )
   },
   evacuation: {
-    title: 'Plano de Evasão',
+    title: 'Evacuação',
     icon: Wind,
     color: 'text-blue-500',
     content: (
       <div className="space-y-4">
         <section className="bg-blue-500/5 p-4 rounded-xl border border-blue-500/10">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-blue-500 mb-2">Ponto de Encontro</h4>
-          <p className="text-sm text-slate-300">Em caso de sirene contínua, dirija-se ao **Estacionamento Central (Ponto A)**. Não retorne ao prédio até que a Brigada autorize.</p>
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-blue-500 mb-2">2. Evacuação</h4>
+          <ul className="text-sm text-slate-300 space-y-3">
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Mantenha a calma:** Evite pânico para tomar decisões seguras.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Organize:** Peça aos alunos que levantem e formem uma fila indiana.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Não levem objetos pessoais:** Deixem bolsas, mochilas e outros itens fora do alcance.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Saiam da sala:** Com calma e ordem, dirijam-se a saída mais próxima, seguindo o fluxo e orientação dos brigadistas.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Desçam as escadas:** Sempre pelo lado direito, segurando o corrimão.</li>
+            <li className="flex gap-2 items-start"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> **Ponto de encontro:** Dirijam-se ao ponto de encontro.</li>
+          </ul>
         </section>
         <div className="aspect-video bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center">
           <span className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Mapa de Evasão Digital</span>
@@ -86,25 +100,33 @@ const GUIDES_CONTENT: Record<string, { title: string, icon: any, color: string, 
     )
   },
   lockdown: {
-    title: 'Protocolo Lockdown',
+    title: 'Lockdown',
     icon: Lock,
     color: 'text-indigo-500',
     content: (
       <div className="space-y-4">
         <section className="bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10">
-          <h4 className="font-black text-[10px] uppercase tracking-widest text-indigo-500 mb-2">Procedimento em Situação de Atirador ou Intruso</h4>
+          <h4 className="font-black text-[10px] uppercase tracking-widest text-indigo-500 mb-4">4. Lockdown</h4>
           <div className="space-y-4">
             <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-blue-500">
-               <p className="text-sm font-black text-blue-400 uppercase tracking-wider mb-1">1. CORRER</p>
-               <p className="text-xs text-slate-300">Se houver um caminho seguro, fuja imediatamente. Deixe pertences para trás. Ajude outros se possível, mas não espere.</p>
+               <p className="text-sm font-black text-blue-400 uppercase tracking-wider mb-1">Passo 1</p>
+               <p className="text-xs text-slate-300">**Mantenha a calma:** Evite pânico para tomar decisões seguras.</p>
             </div>
             <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-amber-500">
-               <p className="text-sm font-black text-amber-400 uppercase tracking-wider mb-1">2. ESCONDER</p>
-               <p className="text-xs text-slate-300">Se não puder fugir, entre em uma sala. Tranque a porta, apague as luzes, silencie o celular (vibração também desativada) e fique longe das janelas.</p>
+               <p className="text-sm font-black text-amber-400 uppercase tracking-wider mb-1">Passo 2</p>
+               <p className="text-xs text-slate-300">**Feche a porta e bloqueie-a:** Tranque a porta e utilize mesas e cadeiras para bloqueá-la.</p>
             </div>
-            <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-red-500">
-               <p className="text-sm font-black text-red-400 uppercase tracking-wider mb-1">3. LUTAR</p>
-               <p className="text-xs text-slate-300">Como último recurso e apenas se sua vida estiver em perigo imediato. Tente desarmar ou incapacitar o invasor usando força total e objetos próximos.</p>
+            <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-indigo-500">
+               <p className="text-sm font-black text-indigo-400 uppercase tracking-wider mb-1">Passo 3</p>
+               <p className="text-xs text-slate-300">**Desliguem as luzes:** Apaguem a luzes e desliguem as telas dos celulares e computadores.</p>
+            </div>
+            <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-cyan-500">
+               <p className="text-sm font-black text-cyan-400 uppercase tracking-wider mb-1">Passo 4</p>
+               <p className="text-xs text-slate-300">**Mantenham-se:** Longe de portas e janelas e fiquem abaixados.</p>
+            </div>
+            <div className="bg-slate-900/80 p-3 rounded-lg border-l-4 border-l-emerald-500">
+               <p className="text-sm font-black text-emerald-400 uppercase tracking-wider mb-1">Conclusão</p>
+               <p className="text-xs text-slate-300">**Aguardem:** Aguardem a liberação por algum funcionário, de que está tudo bem.</p>
             </div>
           </div>
         </section>
