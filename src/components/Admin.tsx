@@ -294,25 +294,25 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
   };
 
   return (
-    <div className="p-6 bg-[#0B0E14] min-h-screen text-slate-200">
-      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800/50 pb-6 relative overflow-hidden">
-        <div className="flex items-center gap-4 z-10">
-          <Logo size="lg" className="shadow-blue-500/20" />
+    <div className="p-4 sm:p-6 bg-[#0B0E14] min-h-screen text-slate-200">
+      <header className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-800/50 pb-6 relative overflow-hidden">
+        <div className="flex items-center gap-3 sm:gap-4 z-10">
+          <Logo size="lg" className="shadow-blue-500/20 shrink-0" />
           <div>
-            <h1 className="text-3xl font-black text-white mb-0.5 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white mb-0.5 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               Inteligência Sentinela
             </h1>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <p className="text-slate-500 text-[8px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               SISTEMA DE MONITORAMENTO AVANÇADO
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button 
             onClick={handleShareUpdate}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/20 font-bold text-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 sm:px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/20 font-bold text-xs sm:text-sm whitespace-nowrap"
           >
             <MessageSquare className="w-4 h-4" />
             <span>Zap Updates</span>
@@ -321,60 +321,62 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
           <button 
             onClick={generateAIInsights}
             disabled={isAnalyzing || alerts.length === 0}
-            className="flex items-center gap-2 bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50 font-bold text-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white px-4 sm:px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50 font-bold text-xs sm:text-sm whitespace-nowrap"
           >
             <BrainCircuit className={cn("w-4 h-4", isAnalyzing && "animate-pulse")} />
-            <span>{isAnalyzing ? 'Processando Dados...' : 'Gerar Insight IA'}</span>
+            <span>{isAnalyzing ? 'Processando...' : 'Insight IA'}</span>
           </button>
           
           <button 
             onClick={handleDownloadReport}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl border border-slate-700 transition-all font-bold text-sm shadow-md"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 sm:px-5 py-2.5 rounded-xl border border-slate-700 transition-all font-bold text-xs sm:text-sm shadow-md whitespace-nowrap"
           >
             <Download className="w-4 h-4 text-blue-400" />
-            Relatório CSV
+            <span>CSV</span>
           </button>
         </div>
       </header>
 
       {/* Tabs Navigation */}
-      <div className="flex p-1.5 bg-slate-900/80 rounded-2xl mb-8 w-full md:w-fit border border-slate-800 shadow-2xl">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300",
-            activeTab === 'dashboard' 
-              ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
-              : "text-slate-500 hover:text-slate-300"
-          )}
-        >
-          <BarChart3 className="w-4 h-4" />
-          Analytics Dashboard
-        </button>
-        <button
-          onClick={() => setActiveTab('dados')}
-          className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300",
-            activeTab === 'dados' 
-              ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
-              : "text-slate-500 hover:text-slate-300"
-          )}
-        >
-          <TableIcon className="w-4 h-4" />
-          Base de Dados
-        </button>
-        <button
-          onClick={() => setActiveTab('calendario')}
-          className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300",
-            activeTab === 'calendario' 
-              ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
-              : "text-slate-500 hover:text-slate-300"
-          )}
-        >
-          <Calendar className="w-4 h-4" />
-          Calendário de Segurança
-        </button>
+      <div className="mb-8 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
+        <div className="flex p-1.5 bg-slate-900/80 rounded-2xl w-fit border border-slate-800 shadow-2xl space-x-1">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={cn(
+              "flex items-center gap-2 px-4 sm:px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 whitespace-nowrap",
+              activeTab === 'dashboard' 
+                ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
+                : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('dados')}
+            className={cn(
+              "flex items-center gap-2 px-4 sm:px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 whitespace-nowrap",
+              activeTab === 'dados' 
+                ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
+                : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            <TableIcon className="w-4 h-4" />
+            Base de Dados
+          </button>
+          <button
+            onClick={() => setActiveTab('calendario')}
+            className={cn(
+              "flex items-center gap-2 px-4 sm:px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 whitespace-nowrap",
+              activeTab === 'calendario' 
+                ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
+                : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            <Calendar className="w-4 h-4" />
+            Calendário
+          </button>
+        </div>
       </div>
 
       {aiInsight && (
@@ -475,7 +477,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Visual Breakdown - Horizontal Bars Like the Image */}
-            <div className="lg:col-span-4 bg-[#161B22] border border-slate-800 p-8 rounded-[32px] shadow-2xl">
+            <div className="lg:col-span-4 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl">
               <h3 className="text-white font-black uppercase tracking-widest text-xs mb-8 flex items-center gap-2">
                 <Filter className="w-4 h-4 text-blue-500" />
                 Distribuição por Setor
@@ -504,7 +506,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
             </div>
 
             {/* Main Chart Area - Line/Area Chart */}
-            <div className="lg:col-span-8 bg-[#161B22] border border-slate-800 p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
+            <div className="lg:col-span-8 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <BarChart3 className="w-32 h-32 text-blue-500" />
               </div>
@@ -564,7 +566,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
             </div>
 
             {/* Circular Breakdown */}
-            <div className="lg:col-span-12 bg-[#161B22] border border-slate-800 p-8 rounded-[32px] shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="lg:col-span-12 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
                 <h3 className="text-white font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
                   <PieChartIcon className="w-4 h-4 text-rose-500" />
@@ -612,10 +614,10 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
         </div>
       ) : activeTab === 'calendario' ? (
         <div className="space-y-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
-              <h2 className="text-2xl font-black text-white">Calendário de Segurança</h2>
-              <p className="text-slate-500 text-sm">Gerencie simulados, treinamentos e auditorias</p>
+              <h2 className="text-xl sm:text-2xl font-black text-white">Calendário de Segurança</h2>
+              <p className="text-slate-500 text-xs sm:text-sm">Gerencie simulados, treinamentos e auditorias</p>
             </div>
             <button 
               onClick={() => {
@@ -629,22 +631,22 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
                 });
                 setShowEventModal(true);
               }}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
-              Novo Evento
+              <span>Novo Evento</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {events.length === 0 ? (
-              <div className="col-span-full py-20 text-center bg-slate-900/50 rounded-[32px] border border-slate-800 border-dashed">
+              <div className="col-span-full py-20 text-center bg-slate-900/50 rounded-[32px] border border-slate-800 border-dashed px-4">
                 <Calendar className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Nenhum evento programado</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Nenhum evento programado</p>
               </div>
             ) : (
               events.map(event => (
-                <div key={event.id} className="bg-[#161B22] border border-slate-800 rounded-[28px] p-6 shadow-xl relative group">
+                <div key={event.id} className="bg-[#161B22] border border-slate-800 rounded-[28px] p-4 sm:p-6 shadow-xl relative group">
                   <div className="flex justify-between items-start mb-4">
                     <div className={cn(
                       "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
@@ -769,8 +771,8 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
       ) : (
         <div className="space-y-6">
           {/* Advanced Filters */}
-          <div className="bg-[#161B22] border border-slate-800 p-6 rounded-[28px] flex flex-wrap gap-6 items-center shadow-2xl">
-            <div className="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest border-r border-slate-800 pr-6">
+          <div className="bg-[#161B22] border border-slate-800 p-4 sm:p-6 rounded-[28px] flex flex-col md:flex-row flex-wrap gap-4 md:gap-6 md:items-center shadow-2xl">
+            <div className="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest md:border-r border-slate-800 md:pr-6">
               <Filter className="w-5 h-5 text-blue-500" />
               Intelligence Filters
             </div>
@@ -816,9 +818,9 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
           </div>
 
           {/* High-Contrast Professional Data Table */}
-          <div className="bg-[#161B22] border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+          <div className="bg-[#161B22] border border-slate-800 rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto scrollbar-hide">
+              <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-0">
                 <thead>
                   <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
                     <th className="px-8 py-5 border-b border-slate-800/50">Classification</th>
