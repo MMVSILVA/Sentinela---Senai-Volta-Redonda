@@ -25,9 +25,9 @@ export function NotificationPermission() {
 
       // Se já tem permissão, vamos tentar pegar o token silenciosamente em background
       if (currentPerm === 'granted' && isFirebaseConfigured && messaging && auth?.currentUser) {
-        navigator.serviceWorker.register('/sw.js').then((registration) => {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js').then((registration) => {
           getToken(messaging, {
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc',
+            vapidKey: 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc',
             serviceWorkerRegistration: registration
           }).then((token) => {
             if (token) {
@@ -55,12 +55,11 @@ export function NotificationPermission() {
 
       if (currentPermission === 'granted') {
         // Registrando o Service Worker próprio para o FCM
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         
         // Obter o Token do FCM
-        // ATENÇÃO: O usuário precisará substituir a vapidKey abaixo pela chave VAPID gerada no console do Firebase
         const token = await getToken(messaging, {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc',
+          vapidKey: 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc',
           serviceWorkerRegistration: registration
         });
 

@@ -344,6 +344,21 @@ export const useStore = create<AppState>()(
         if (isFirebaseConfigured && db) {
           try {
             await addDoc(collection(db, 'alerts'), alertData);
+            
+            // Notification for emergency alerts
+            const alertLabels: Record<string, string> = {
+              'emergency': '🚨 EMERGÊNCIA GERAL',
+              'fire': '🔥 INCÊNDIO',
+              'firstaid': '🚑 PRIMEIROS SOCORROS',
+              'simulated': '🔔 SIMULADO',
+              'lockdown': '🔒 LOCKDOWN'
+            };
+
+            get().notifyAllUsers(
+              alertLabels[type] || '⚠️ ALERTA DE SEGURANÇA',
+              `Disparado por ${user.name} em ${specificLocation || 'Local não especificado'}`,
+              { type, alertId: 'new' }
+            );
           } catch (error) {
             handleFirestoreError(error, OperationType.WRITE, 'alerts');
           }
@@ -360,11 +375,21 @@ export const useStore = create<AppState>()(
           const path = `alerts/${alertId}`;
           try {
             const alertRef = doc(db, 'alerts', alertId);
+            const alertDoc = await getDoc(alertRef);
+            const alertData = alertDoc.data() as Alert;
+            
             await updateDoc(alertRef, {
               active: false,
               resolvedAt: Date.now(),
               notes: notes || null
             });
+
+            // Notify resolution
+            get().notifyAllUsers(
+              `✅ ALERTA RESOLVIDO: ${alertData.type.toUpperCase()}`,
+              `Situação normalizada em ${alertData.specificLocation || 'Local não especificado'}`,
+              { type: alertData.type, alertId, status: 'resolved' }
+            );
           } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, path);
           }
@@ -660,8 +685,7 @@ export const useStore = create<AppState>()(
 
           const token = await getToken(messaging, {
             serviceWorkerRegistration: registration,
-            // Generic Public VAPID Key for development
-            vapidKey: 'BD8l7WjH94a_V7Q_zS_C-Xv6-q9m_K_D-L-x_Z-v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v_v' 
+            vapidKey: 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc' 
           });
 
           if (token && token !== user.fcmToken) {
@@ -684,15 +708,23 @@ export const useStore = create<AppState>()(
 
           if (tokens.length === 0) return;
 
-          // Note: Real mass notifications should be done via Firebase Admin SDK in a Cloud Function
-          // This is a client-side facilitation for the dev environment
           console.log(`Disparando notificações para ${tokens.length} dispositivos...`);
           
-          // In a real app, we'd call a backend endpoint here.
-          // For now, we are relying on the onSnapshot in other clients to show local notifications
-          // while the app is foreground, and the FCM setup is for future background integration.
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tokens,
+              title,
+              body,
+              data: {
+                ...data,
+                click_action: window.location.origin
+              }
+            })
+          });
         } catch (error) {
-          console.error("Failed to fetch tokens for notification:", error);
+          console.error("Failed to fetch tokens or send notification:", error);
         }
       },
 

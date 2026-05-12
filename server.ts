@@ -3,8 +3,18 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { google } from "googleapis";
 import dotenv from "dotenv";
+import admin from "firebase-admin";
 
 dotenv.config();
+
+// Initialize Firebase Admin
+try {
+  admin.initializeApp({
+    projectId: "gen-lang-client-0990586267"
+  });
+} catch (error) {
+  console.error("Firebase Admin initialization error:", error);
+}
 
 const app = express();
 const PORT = 3000;
@@ -106,6 +116,28 @@ app.post("/api/calendar/sync", async (req, res) => {
   } catch (error) {
     console.error("Calendar sync error:", error);
     res.status(500).json({ error: "Failed to sync calendar" });
+  }
+});
+
+app.post("/api/notify", async (req, res) => {
+  const { tokens, title, body, data } = req.body;
+  
+  if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+    return res.status(400).json({ error: "No tokens provided" });
+  }
+
+  try {
+    const message = {
+      notification: { title, body },
+      data: data || {},
+      tokens: tokens,
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    res.json({ success: true, response });
+  } catch (error) {
+    console.error("FCM Send error:", error);
+    res.status(500).json({ error: "Failed to send notifications" });
   }
 });
 
