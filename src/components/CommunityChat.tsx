@@ -249,7 +249,7 @@ export function CommunityChat() {
       {/* Mensagens */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] custom-scrollbar relative"
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a] scrollbar-custom relative"
       >
         <div className="relative z-10 w-full flex flex-col space-y-3">
           <AnimatePresence initial={false}>
@@ -546,7 +546,7 @@ export function CommunityChat() {
               placeholder="Mensagem"
               minRows={1}
               maxRows={6}
-              className="flex-1 bg-transparent border-none px-2 py-3 text-sm text-[#d1d7db] placeholder-[#8696a0] focus:ring-0 transition-all resize-none custom-scrollbar"
+              className="flex-1 bg-transparent border-none px-2 py-3 text-sm text-[#d1d7db] placeholder-[#8696a0] focus:ring-0 transition-all resize-none scrollbar-custom"
             />
 
             {!editingMessageId && (

@@ -146,7 +146,7 @@ export function Home() {
           </button>
         </div>
         
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-custom snap-x">
           {/* Calendar Events (Priority & Horizontal) */}
           {events && events.length > 0 && events
             .filter(e => new Date(e.date + 'T23:59:59') >= new Date())

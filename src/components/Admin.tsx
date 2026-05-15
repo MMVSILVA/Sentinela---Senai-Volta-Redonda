@@ -338,7 +338,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
       </header>
 
       {/* Tabs Navigation */}
-      <div className="mb-8 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
+      <div className="mb-8 overflow-x-auto pb-4 scrollbar-custom -mx-6 px-6">
         <div className="flex p-1.5 bg-slate-900/80 rounded-2xl w-fit border border-slate-800 shadow-2xl space-x-1">
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -819,7 +819,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
 
           {/* High-Contrast Professional Data Table */}
           <div className="bg-[#161B22] border border-slate-800 rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto scrollbar-hide">
+            <div className="overflow-x-auto scrollbar-custom">
               <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-0">
                 <thead>
                   <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">

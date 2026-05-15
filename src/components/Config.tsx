@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Camera, Upload, Save, LogOut } from 'lucide-react';
+import { Camera, Upload, Save, LogOut, Calendar } from 'lucide-react';
 import { APP_VERSION } from '../lib/version';
 
 export function Config() {
@@ -156,6 +156,52 @@ export function Config() {
           {isSaving ? 'Salvando...' : isSaved ? 'Salvo com sucesso!' : 'Salvar Perfil'}
         </button>
       </form>
+
+      <div className="mt-8 space-y-4">
+        <h3 className="text-slate-300 font-bold mb-2">Conexões</h3>
+        
+        {user?.googleTokens ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500/20 p-2 rounded-lg">
+                <Calendar className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-bold">Google Calendar</p>
+                <p className="text-emerald-500/70 text-[10px] uppercase font-black tracking-widest">Sincronizado</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => useStore.getState().syncGoogleEvents()}
+              className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20"
+            >
+              Sincronizar Agora
+            </button>
+          </div>
+        ) : (
+          <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-700 p-2 rounded-lg">
+                <Calendar className="w-5 h-5 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-bold">Google Calendar</p>
+                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest">Não conectado</p>
+              </div>
+            </div>
+            <button 
+              onClick={async () => {
+                const response = await fetch(`/api/auth/google/url?uid=${user?.id}`);
+                const { url } = await response.json();
+                window.open(url, 'google_auth', 'width=600,height=700');
+              }}
+              className="text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition-all"
+            >
+              Vincular
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="mt-8">
         <button

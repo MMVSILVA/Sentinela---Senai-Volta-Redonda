@@ -197,21 +197,32 @@ export function CalendarView() {
 
       {/* Calendar Grid Section */}
       <div className="bg-[#161B22] border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-slate-800">
-          <h2 className="text-lg font-black text-white capitalize">{monthName} <span className="text-slate-500">{year}</span></h2>
+        <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-900/20">
+          <h2 className="text-lg font-black text-white capitalize">{monthName} <span className="text-slate-500 font-medium">{year}</span></h2>
           <div className="flex items-center gap-2">
             <button 
-              onClick={prevMonth}
-              className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+              onClick={() => {
+                setCurrentDate(new Date());
+                setSelectedDate(new Date());
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest border border-slate-700/50 mr-2"
             >
-              <ChevronLeft className="w-5 h-5" />
+              Hoje
             </button>
-            <button 
-              onClick={nextMonth}
-              className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+              <button 
+                onClick={prevMonth}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={nextMonth}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -237,24 +248,44 @@ export function CalendarView() {
                   key={date.toISOString()}
                   onClick={() => handleDayClick(date)}
                   className={cn(
-                    "aspect-square rounded-2xl flex flex-col items-center justify-center relative transition-all border group",
+                    "min-h-[60px] sm:min-h-[100px] rounded-xl sm:rounded-2xl flex flex-col p-1.5 sm:p-3 relative transition-all border group overflow-hidden",
                     isSelected ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/40" : 
                     isToday ? "bg-slate-800/50 border-blue-500/40 text-blue-400" :
                     "bg-slate-800/20 border-slate-800/40 hover:border-slate-700 text-slate-400"
                   )}
                 >
-                  <span className={cn("text-sm font-bold", isSelected ? "text-white" : "group-hover:text-white")}>{date.getDate()}</span>
-                  {dateEvents.length > 0 && !isSelected && (
-                    <div className="absolute bottom-2 flex gap-0.5">
-                      {dateEvents.slice(0, 3).map((e, idx) => (
-                        <div key={e.id} className={cn("w-1 h-1 rounded-full", 
-                          e.type === 'drill' ? "bg-amber-500" :
-                          e.type === 'training' ? "bg-indigo-400" :
-                          "bg-emerald-500"
+                  <span className={cn("text-xs sm:text-sm font-bold self-start mb-2", isSelected ? "text-white" : "group-hover:text-white")}>{date.getDate()}</span>
+                  <div className="flex flex-col gap-1 w-full overflow-hidden">
+                    {dateEvents.slice(0, 2).map((e, idx) => (
+                      <div 
+                        key={e.id} 
+                        className={cn(
+                          "hidden sm:block text-[9px] px-2 py-1 rounded-lg truncate w-full text-left font-black uppercase tracking-tighter border", 
+                          isSelected ? "bg-white/20 border-white/20 text-white" :
+                          e.type === 'drill' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                          e.type === 'training' ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" :
+                          "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                        )}
+                      >
+                        {e.title}
+                      </div>
+                    ))}
+                    {dateEvents.length > 2 && (
+                      <div className="hidden sm:block text-[8px] font-black text-slate-500 uppercase tracking-widest pl-1 mt-0.5">
+                        + {dateEvents.length - 2} mais
+                      </div>
+                    )}
+                    {/* Dots for mobile */}
+                    <div className="flex sm:hidden gap-1 mt-auto">
+                      {dateEvents.slice(0, 4).map((e, idx) => (
+                        <div key={e.id} className={cn("w-1.5 h-1.5 rounded-full border border-black/20", 
+                          e.type === 'drill' ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" :
+                          e.type === 'training' ? "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]" :
+                          "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                         )} />
                       ))}
                     </div>
-                  )}
+                  </div>
                 </button>
               );
             })}
@@ -286,30 +317,48 @@ export function CalendarView() {
                 key={event.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-[#161B22] border border-slate-800 rounded-2xl p-4 flex gap-4"
+                className="bg-gradient-to-br from-[#1c222d] to-[#161B22] border border-slate-800 rounded-3xl p-5 flex gap-5 shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all duration-300"
               >
-                <div className={cn("p-3 rounded-xl border flex items-center justify-center shrink-0 h-fit", getEventTypeStyles(event.type))}>
+                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity duration-500 scale-150 rotate-12 pointer-events-none">
                   {getEventTypeIcon(event.type)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-white font-bold text-sm truncate">{event.title}</h4>
-                    {isAdmin && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button onClick={() => handleEditEvent(event)} className="text-slate-500 hover:text-white p-1">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => deleteEvent(event.id)} className="text-rose-500/50 hover:text-rose-500 p-1">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                
+                <div className={cn("p-4 rounded-2xl border flex items-center justify-center shrink-0 h-fit shadow-inner", getEventTypeStyles(event.type))}>
+                  <div className="scale-125">
+                    {getEventTypeIcon(event.type)}
                   </div>
-                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">{event.description}</p>
-                  <div className="flex items-center gap-3 mt-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    <div className="flex items-center gap-1">
+                </div>
+
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <h4 className="text-white font-black text-base tracking-tight uppercase group-hover:text-blue-400 transition-colors">{event.title}</h4>
+                      {isAdmin && (
+                        <div className="flex items-center gap-1 shrink-0 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
+                          <button onClick={() => handleEditEvent(event)} className="text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 p-1.5 rounded-md transition-all">
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => {
+                            if (window.confirm('Tem certeza que deseja excluir este evento?')) {
+                              deleteEvent(event.id);
+                            }
+                          }} className="text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 p-1.5 rounded-md transition-all">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4 pr-4">{event.description}</p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 mt-auto">
+                    <div className="flex items-center gap-2 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800/50">
                       <MapPin className="w-3 h-3 text-blue-500" />
-                      {event.location || 'Local a definir'}
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{event.location || 'Local a definir'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800/50">
+                      <Clock className="w-3 h-3 text-emerald-500" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Agendado</span>
                     </div>
                   </div>
                 </div>
