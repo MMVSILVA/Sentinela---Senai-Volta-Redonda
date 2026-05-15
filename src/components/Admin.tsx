@@ -19,6 +19,7 @@ import {
   Bell,
   Users,
   ShieldAlert,
+  MapPin,
   ChevronDown,
   MessageSquare,
   Edit
@@ -163,16 +164,27 @@ export function Admin() {
 
   // Data for Charts
   const chartDataByType = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<AlertType, number> = {
+      'emergency': 0,
+      'fire': 0,
+      'firstaid': 0,
+      'lockdown': 0,
+      'simulated': 0
+    };
+
     alerts.forEach(alert => {
-      const label = getAlertLabel(alert.type);
-      counts[label] = (counts[label] || 0) + 1;
+      if (counts[alert.type] !== undefined) {
+        counts[alert.type]++;
+      }
     });
-    return Object.entries(counts).map(([name, value]) => ({ 
-      name, 
-      value,
-      color: getAlertColor(Object.entries(counts).find(([n]) => getAlertLabel(alertTypeMap[n]) === name)?.[0] || 'other')
-    }));
+
+    return [
+      { name: 'Emergência', value: counts['emergency'], color: '#ef4444' }, // Red
+      { name: 'Incêndio', value: counts['fire'], color: '#f59e0b' },      // Amber
+      { name: 'Primeiros Socorros', value: counts['firstaid'], color: '#10b981' }, // Emerald
+      { name: 'Lockdown', value: counts['lockdown'], color: '#3b82f6' },   // Blue
+      { name: 'Simulado', value: counts['simulated'], color: '#64748b' }   // Slate
+    ].filter(item => item.value > 0);
   }, [alerts]);
 
   const chartDataBySector = useMemo(() => {
@@ -566,7 +578,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
             </div>
 
             {/* Circular Breakdown */}
-            <div className="lg:col-span-12 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="lg:col-span-6 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
                 <h3 className="text-white font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
                   <PieChartIcon className="w-4 h-4 text-rose-500" />
@@ -576,7 +588,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
                 <div className="grid grid-cols-2 gap-4">
                   {chartDataByType.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div className="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}40` }} />
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{item.name}</span>
                         <span className="text-sm font-bold text-white">{item.value} ({Math.round((item.value / alerts.length) * 100)}%)</span>
@@ -599,7 +611,11 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
                       stroke="none"
                     >
                       {chartDataByType.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color}
+                          style={{ filter: `drop-shadow(0px 0px 8px ${entry.color}40)` }}
+                        />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -608,6 +624,83 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
                     />
                   </PieChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Geographic Heatmap Widget */}
+            <div className="lg:col-span-6 bg-[#161B22] border border-slate-800 p-5 sm:p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
+              <h3 className="text-white font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-500" />
+                Mapa de Risco por Setor
+              </h3>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed font-medium">Concentração geográfica de ocorrências por área de atuação.</p>
+              
+              <div className="flex-1 min-h-[250px] relative">
+                {chartDataBySector.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-slate-600 font-bold uppercase text-[10px] tracking-widest italic border border-slate-800 border-dashed rounded-2xl">
+                    Aguardando dados geográficos
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {chartDataBySector
+                      .sort((a, b) => b.value - a.value)
+                      .slice(0, 6)
+                      .map((sector, i) => {
+                        const intensity = sector.value / Math.max(...chartDataBySector.map(s => s.value));
+                        return (
+                          <div 
+                            key={i} 
+                            className="bg-slate-900/50 border border-slate-800/50 p-4 rounded-2xl flex flex-col justify-between overflow-hidden relative group transition-all hover:bg-slate-800"
+                          >
+                            <div 
+                              className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity"
+                              style={{ 
+                                backgroundColor: intensity > 0.7 ? '#ef4444' : intensity > 0.4 ? '#f59e0b' : '#3b82f6',
+                                filter: 'blur(20px)'
+                              }}
+                            />
+                            <div className="relative z-10">
+                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">{sector.name}</p>
+                              <p className="text-lg font-black text-white">{sector.value}</p>
+                            </div>
+                            <div className="mt-2 relative z-10 flex items-center gap-2">
+                              <div className="h-1 flex-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div 
+                                  className={cn(
+                                    "h-full rounded-full",
+                                    intensity > 0.7 ? "bg-red-500" : intensity > 0.4 ? "bg-amber-500" : "bg-blue-500"
+                                  )}
+                                  style={{ width: `${intensity * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-400 capitalize">
+                                {intensity > 0.7 ? 'Alto' : intensity > 0.4 ? 'Médio' : 'Baixo'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+                
+                {/* Visual heat indicator */}
+                <div className="mt-6 flex items-center justify-between px-2">
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase">Seguro</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase">Alerta</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase">Risco</span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-black text-slate-500 uppercase">Frequência Relativa</span>
+                </div>
               </div>
             </div>
           </div>

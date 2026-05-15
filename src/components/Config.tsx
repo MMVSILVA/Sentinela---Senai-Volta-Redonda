@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Camera, Upload, Save, LogOut, Calendar } from 'lucide-react';
+import { Camera, Upload, Save, LogOut, Calendar, Bell, Shield, BellRing, CheckCircle2, ChevronRight } from 'lucide-react';
 import { APP_VERSION } from '../lib/version';
 
 export function Config() {
@@ -156,6 +156,73 @@ export function Config() {
           {isSaving ? 'Salvando...' : isSaved ? 'Salvo com sucesso!' : 'Salvar Perfil'}
         </button>
       </form>
+
+      <div className="mt-8 space-y-4">
+        <h3 className="text-slate-300 font-bold mb-2 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-blue-500" />
+          Notificações & Segurança
+        </h3>
+        
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden divide-y divide-slate-700 shadow-xl">
+          <div className="p-4 flex items-center justify-between group">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-500/20 p-2.5 rounded-xl">
+                <BellRing className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Alertas em Tempo Real</p>
+                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mt-0.5">Push Notifications</p>
+              </div>
+            </div>
+            {Notification.permission === 'granted' ? (
+              <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Ativo</span>
+              </div>
+            ) : (
+              <button 
+                onClick={async () => {
+                  const permission = await Notification.requestPermission();
+                  if (permission === 'granted') {
+                    await useStore.getState().updateFCMToken();
+                    window.location.reload();
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+              >
+                Solicitar Acesso
+              </button>
+            )}
+          </div>
+
+          <button 
+            onClick={() => useStore.getState().updateFCMToken()}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-700/30 transition-colors group text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-purple-500/20 p-2.5 rounded-xl">
+                <Shield className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Token de Segurança</p>
+                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mt-0.5">FCM Authentication Device ID</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {user?.fcmToken ? (
+                <span className="text-[10px] font-black uppercase text-slate-500 tabular-nums">ID: {user.fcmToken.substring(0, 8)}...</span>
+              ) : (
+                <span className="text-[10px] font-black uppercase text-rose-500 tracking-widest">Pendente</span>
+              )}
+              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        </div>
+
+        <p className="text-[10px] text-slate-500 px-2 italic">
+          * Para receber notificações em dispositivos iOS, certifique-se de Adicionar à Tela de Início primeiro.
+        </p>
+      </div>
 
       <div className="mt-8 space-y-4">
         <h3 className="text-slate-300 font-bold mb-2">Conexões</h3>
