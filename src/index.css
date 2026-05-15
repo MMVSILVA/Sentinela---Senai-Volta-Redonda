@@ -18,19 +18,20 @@
 
 @utility scrollbar-custom {
   &::-webkit-scrollbar {
-    height: 6px;
-    width: 6px;
+    height: 8px;
+    width: 8px;
   }
   &::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.1);
+    background: rgba(15, 23, 42, 0.3);
     border-radius: 10px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(30, 41, 59, 0.5);
+    background: rgba(59, 130, 246, 0.5); /* blue-500 optimized opacity */
     border-radius: 10px;
+    border: 2px solid rgba(15, 23, 42, 0.1);
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(51, 65, 85, 0.8);
+    background: rgba(59, 130, 246, 0.8);
   }
 }
 

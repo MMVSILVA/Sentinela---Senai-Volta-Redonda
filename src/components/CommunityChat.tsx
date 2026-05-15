@@ -231,9 +231,9 @@ export function CommunityChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative pb-[80px]">
+    <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative pb-20">
       {/* Header */}
-      <div className="p-4 bg-[#202c33] flex items-center gap-3 shadow-md z-20 border-b border-white/5">
+      <div className="p-4 bg-[#202c33] flex items-center gap-3 shadow-md z-20 border-b border-white/5 shrink-0">
         <div className="bg-blue-600 p-2.5 rounded-full shadow-lg">
           <Users className="w-5 h-5 text-white" />
         </div>

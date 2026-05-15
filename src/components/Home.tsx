@@ -25,7 +25,14 @@ export function Home() {
 
   const HOLD_DURATION = 1500; // Reduzido para 1.5s para maior rapidez
 
-  const startPress = (type: AlertType) => {
+  const startPress = (e: React.MouseEvent | React.TouchEvent, type: AlertType) => {
+    // Evitar comportamento padrão do navegador no toque (zoom, menu de contexto)
+    if (e.type === 'touchstart') {
+      if ((e as React.TouchEvent).touches.length > 1) return;
+    }
+    
+    if (pressingType) return;
+    
     setPressingType(type);
     setProgress(0);
 
@@ -60,13 +67,21 @@ export function Home() {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   };
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleTrigger = async (type: AlertType) => {
     const finalLocation = lastLocationRef.current;
+    setError(null);
     
     try {
       await triggerAlert(type, finalLocation || undefined, specificLocation);
+      // Feedback de sucesso (vibração opcional se o navegador suportar)
+      if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
     } catch (err: any) {
       console.error("Erro ao disparar:", err);
+      setError("Falha ao enviar alerta. Verifique sua conexão e tente novamente.");
+      // Limpar erro após 5 segundos
+      setTimeout(() => setError(null), 5000);
     }
     
     setSpecificLocation('');
@@ -77,6 +92,15 @@ export function Home() {
 
   return (
     <div className="flex flex-col p-3 sm:p-6 pb-32">
+      {error && (
+        <div className="fixed top-20 left-4 right-4 z-[100] animate-in slide-in-from-top-4">
+          <div className="bg-red-500 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-red-400">
+            <AlertCircle className="w-6 h-6 shrink-0" />
+            <p className="text-sm font-bold">{error}</p>
+          </div>
+        </div>
+      )}
+      
       <header className="flex items-center gap-3 sm:gap-6 mb-8 sm:mb-10 bg-slate-800/60 p-4 sm:p-6 rounded-3xl border border-slate-700/50 shadow-2xl relative overflow-hidden group min-h-[120px] sm:min-h-[160px]">
         <div className="relative z-10 flex-shrink-0">
           <div className="p-1 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-500 shadow-xl">
@@ -269,12 +293,13 @@ export function Home() {
         <div className="grid grid-cols-2 gap-x-12 gap-y-8 w-full max-w-md place-items-center">
           <div className="flex flex-col items-center gap-4">
             <button
-              onMouseDown={() => startPress('fire')}
+              onMouseDown={(e) => startPress(e, 'fire')}
               onMouseUp={stopPress}
               onMouseLeave={stopPress}
-              onTouchStart={() => startPress('fire')}
+              onTouchStart={(e) => startPress(e, 'fire')}
               onTouchEnd={stopPress}
-              className="relative group"
+              className="relative group touch-none select-none"
+              style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
@@ -294,12 +319,13 @@ export function Home() {
 
           <div className="flex flex-col items-center gap-4">
             <button
-              onMouseDown={() => startPress('firstaid')}
+              onMouseDown={(e) => startPress(e, 'firstaid')}
               onMouseUp={stopPress}
               onMouseLeave={stopPress}
-              onTouchStart={() => startPress('firstaid')}
+              onTouchStart={(e) => startPress(e, 'firstaid')}
               onTouchEnd={stopPress}
-              className="relative group"
+              className="relative group touch-none select-none"
+              style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
@@ -319,12 +345,13 @@ export function Home() {
 
           <div className="flex flex-col items-center gap-4">
             <button
-              onMouseDown={() => startPress('lockdown')}
+              onMouseDown={(e) => startPress(e, 'lockdown')}
               onMouseUp={stopPress}
               onMouseLeave={stopPress}
-              onTouchStart={() => startPress('lockdown')}
+              onTouchStart={(e) => startPress(e, 'lockdown')}
               onTouchEnd={stopPress}
-              className="relative group"
+              className="relative group touch-none select-none"
+              style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
@@ -344,12 +371,13 @@ export function Home() {
 
           <div className="flex flex-col items-center gap-4">
             <button
-              onMouseDown={() => startPress('simulated')}
+              onMouseDown={(e) => startPress(e, 'simulated')}
               onMouseUp={stopPress}
               onMouseLeave={stopPress}
-              onTouchStart={() => startPress('simulated')}
+              onTouchStart={(e) => startPress(e, 'simulated')}
               onTouchEnd={stopPress}
-              className="relative group"
+              className="relative group touch-none select-none"
+              style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",

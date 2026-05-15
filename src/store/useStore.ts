@@ -175,17 +175,29 @@ export const useStore = create<AppState>()(
 
         if (isFirebaseConfigured && auth && db) {
           let unsubscribeAlerts: (() => void) | null = null;
+          let unsubscribeUser: (() => void) | null = null;
 
           auth.onAuthStateChanged(async (firebaseUser) => {
+            // Clean up previous listeners
+            if (unsubscribeUser) {
+              unsubscribeUser();
+              unsubscribeUser = null;
+            }
+            if (unsubscribeAlerts) {
+              unsubscribeAlerts();
+              unsubscribeAlerts = null;
+            }
+
             if (firebaseUser) {
-              const path = `users/${firebaseUser.uid}`;
-              try {
-                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-                if (userDoc.exists()) {
-                  const userData = userDoc.data() as User;
-                  // Force admin role for specific emails with safety check
+              const userRef = doc(db, 'users', firebaseUser.uid);
+              
+              // Subscribe to user document changes for real-time profile/FCM token sync
+              unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+                if (docSnap.exists()) {
+                  const userData = docSnap.data() as User;
                   const userEmail = userData.email || '';
                   const isAdminEmail = ['vinidoctor@gmail.com', 'mmvsilva@firjan.com.br'].includes(userEmail.toLowerCase());
+                  
                   const sanitizedUser = { 
                     ...userData, 
                     id: firebaseUser.uid,
@@ -196,14 +208,11 @@ export const useStore = create<AppState>()(
 
                   // Subscribe to alerts ONLY when user is authenticated
                   if (!unsubscribeAlerts) {
-                    // Use metadata.fromCache to prioritize speed if needed, 
-                    // but here we just ensure the listener is active
                     unsubscribeAlerts = onSnapshot(collection(db, 'alerts'), (snapshot) => {
                       const alerts = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                       })) as Alert[];
-                      // Immediate state update
                       set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp) });
                     }, (error) => {
                       console.error("Alerts sync error:", error);
@@ -214,22 +223,14 @@ export const useStore = create<AppState>()(
                   }
                 } else {
                   set({ user: null, initialized: true });
-                  if (unsubscribeAlerts) {
-                    unsubscribeAlerts();
-                    unsubscribeAlerts = null;
-                  }
                 }
-              } catch (error) {
-                console.error("Error fetching user doc:", error);
-                set({ initialized: true }); // Ensure app doesn't hang
-                handleFirestoreError(error, OperationType.GET, path);
-              }
+              }, (error) => {
+                console.error("User document sync error:", error);
+                set({ initialized: true });
+                handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+              });
             } else {
               set({ user: null, initialized: true, alerts: [] });
-              if (unsubscribeAlerts) {
-                unsubscribeAlerts();
-                unsubscribeAlerts = null;
-              }
             }
           });
         } else {
@@ -319,17 +320,15 @@ export const useStore = create<AppState>()(
       setAlerts: (alerts) => set({ alerts }),
 
       triggerAlert: async (type, location, specificLocation) => {
-        const { user, alerts } = get();
-        if (!user) return;
+        const { user } = get();
+        if (!user || !isFirebaseConfigured || !db) return;
 
-        // Limpar dados sensíveis/pesados para o snapshot
         const triggererSnapshot = {
           id: user.id,
           name: user.name,
           sector: user.sector,
           phone: user.phone,
-          // Limitamos o tamanho da foto no snapshot se for muito grande
-          photo: user.photo?.length > 50000 ? user.photo.substring(0, 500) + '...' : user.photo
+          photo: user.photo?.length > 50000 ? user.photo.substring(0, 500) + '...' : (user.photo || '')
         };
 
         const alertData = {
@@ -341,30 +340,31 @@ export const useStore = create<AppState>()(
           specificLocation: specificLocation || null
         };
 
-        if (isFirebaseConfigured && db) {
-          try {
-            await addDoc(collection(db, 'alerts'), alertData);
-            
-            // Notification for emergency alerts
-            const alertLabels: Record<string, string> = {
-              'emergency': '🚨 EMERGÊNCIA GERAL',
-              'fire': '🔥 INCÊNDIO',
-              'firstaid': '🚑 PRIMEIROS SOCORROS',
-              'simulated': '🔔 SIMULADO',
-              'lockdown': '🔒 LOCKDOWN'
-            };
+        try {
+          const docRef = await addDoc(collection(db, 'alerts'), alertData);
+          
+          const alertLabels: Record<string, string> = {
+            'emergency': '🚨 EMERGÊNCIA GERAL',
+            'fire': '🔥 INCÊNDIO',
+            'firstaid': '🚑 PRIMEIROS SOCORROS',
+            'simulated': '🔔 SIMULADO',
+            'lockdown': '🔒 LOCKDOWN'
+          };
 
-            get().notifyAllUsers(
-              alertLabels[type] || '⚠️ ALERTA DE SEGURANÇA',
-              `Disparado por ${user.name} em ${specificLocation || 'Local não especificado'}`,
-              { type, alertId: 'new' }
-            );
-          } catch (error) {
-            handleFirestoreError(error, OperationType.WRITE, 'alerts');
-          }
-        } else {
-          const newAlert = { ...alertData, id: Math.random().toString(36).substr(2, 9) } as Alert;
-          set({ alerts: [newAlert, ...alerts] });
+          await get().notifyAllUsers(
+            alertLabels[type] || '⚠️ ALERTA DE SEGURANÇA',
+            `ALERTA por ${user.name} em ${specificLocation || 'Local não especificado'}`,
+            { 
+              type, 
+              alertId: docRef.id,
+              tag: 'sentinela-alert',
+              userName: user.name
+            }
+          );
+        } catch (error) {
+          console.error("Trigger Alert Error:", error);
+          handleFirestoreError(error, OperationType.WRITE, 'alerts');
+          throw error; // Rethrow to handle in UI
         }
       },
 
