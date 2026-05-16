@@ -12,7 +12,7 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 import { initializeFirestore } from 'firebase/firestore';
 export const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
+  experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
@@ -76,14 +76,20 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // Teste de conexão conforme CRITICAL CONSTRAINT
 async function testConnection() {
+  console.log("Iniciando teste de conexão Firebase...");
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log("Firebase conectado com sucesso!");
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration or internet connection.");
-    } else {
-      console.error("Firebase connection test error:", error);
+    // Tenta obter do servidor com timeout
+    const testDoc = await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firebase conectado com sucesso!", testDoc.exists() ? "Doc existe." : "Doc não existe (esperado).");
+  } catch (error: any) {
+    console.error("Firebase connection test error details:", {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
+    
+    if (error.message && (error.message.includes('the client is offline') || error.message.includes('Could not reach Cloud Firestore backend'))) {
+      console.error("ERRO CRÍTICO: Falha ao alcançar o backend do Firestore. Verifique as configurações no Firebase Console e a conexão.");
     }
   }
 }

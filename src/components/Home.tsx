@@ -23,15 +23,18 @@ export function Home() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastLocationRef = useRef<{ lat: number, lng: number } | null>(null);
 
-  const HOLD_DURATION = 1500; // Reduzido para 1.5s para maior rapidez
+  const HOLD_DURATION = 1200; // Reduzido para 1.2s para maior agilidade
 
   const startPress = (e: React.MouseEvent | React.TouchEvent, type: AlertType) => {
-    // Evitar comportamento padrão do navegador no toque (zoom, menu de contexto)
-    if (e.type === 'touchstart') {
-      if ((e as React.TouchEvent).touches.length > 1) return;
+    // Evitar zoom e menu de contexto no celular ao segurar
+    if (e.cancelable) {
+      // e.preventDefault(); // Pode quebrar o clique se não for cuidadoso
     }
     
     if (pressingType) return;
+    
+    // Feedback tátil inicial
+    if ('vibrate' in navigator) navigator.vibrate(20);
     
     setPressingType(type);
     setProgress(0);
@@ -68,10 +71,12 @@ export function Home() {
   };
 
   const [error, setError] = useState<string | null>(null);
+  const [isTriggering, setIsTriggering] = useState<AlertType | null>(null);
 
   const handleTrigger = async (type: AlertType) => {
     const finalLocation = lastLocationRef.current;
     setError(null);
+    setIsTriggering(type);
     
     try {
       await triggerAlert(type, finalLocation || undefined, specificLocation);
@@ -82,6 +87,8 @@ export function Home() {
       setError("Falha ao enviar alerta. Verifique sua conexão e tente novamente.");
       // Limpar erro após 5 segundos
       setTimeout(() => setError(null), 5000);
+    } finally {
+      setIsTriggering(null);
     }
     
     setSpecificLocation('');
@@ -290,7 +297,7 @@ export function Home() {
           Pressione e segure para ativar
         </p>
 
-        <div className="grid grid-cols-2 gap-x-12 gap-y-8 w-full max-w-md place-items-center">
+        <div className="grid grid-cols-2 gap-x-6 sm:gap-x-12 gap-y-6 sm:gap-y-8 w-full max-w-md place-items-center">
           <div className="flex flex-col items-center gap-4">
             <button
               onMouseDown={(e) => startPress(e, 'fire')}
@@ -298,15 +305,22 @@ export function Home() {
               onMouseLeave={stopPress}
               onTouchStart={(e) => startPress(e, 'fire')}
               onTouchEnd={stopPress}
-              className="relative group touch-none select-none"
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isTriggering !== null}
+              className="relative group touch-none select-none disabled:opacity-50"
               style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-orange-400 to-orange-600",
-                pressingType === 'fire' ? "scale-95" : "hover:scale-105"
+                pressingType === 'fire' ? "scale-95" : "hover:scale-105",
+                isTriggering === 'fire' && "animate-pulse"
               )}>
-                <Flame className="w-10 h-10 text-white" />
+                {isTriggering === 'fire' ? (
+                  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Flame className="w-10 h-10 text-white" />
+                )}
               </div>
               {pressingType === 'fire' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
@@ -324,15 +338,22 @@ export function Home() {
               onMouseLeave={stopPress}
               onTouchStart={(e) => startPress(e, 'firstaid')}
               onTouchEnd={stopPress}
-              className="relative group touch-none select-none"
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isTriggering !== null}
+              className="relative group touch-none select-none disabled:opacity-50"
               style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-emerald-500 to-emerald-700",
-                pressingType === 'firstaid' ? "scale-95" : "hover:scale-105"
+                pressingType === 'firstaid' ? "scale-95" : "hover:scale-105",
+                isTriggering === 'firstaid' && "animate-pulse"
               )}>
-                <Plus className="w-12 h-12 text-white" strokeWidth={3} />
+                {isTriggering === 'firstaid' ? (
+                  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Plus className="w-12 h-12 text-white" strokeWidth={3} />
+                )}
               </div>
               {pressingType === 'firstaid' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
@@ -350,15 +371,22 @@ export function Home() {
               onMouseLeave={stopPress}
               onTouchStart={(e) => startPress(e, 'lockdown')}
               onTouchEnd={stopPress}
-              className="relative group touch-none select-none"
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isTriggering !== null}
+              className="relative group touch-none select-none disabled:opacity-50"
               style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-blue-500 to-blue-700",
-                pressingType === 'lockdown' ? "scale-95" : "hover:scale-105"
+                pressingType === 'lockdown' ? "scale-95" : "hover:scale-105",
+                isTriggering === 'lockdown' && "animate-pulse"
               )}>
-                <Lock className="w-10 h-10 text-white" />
+                {isTriggering === 'lockdown' ? (
+                  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Lock className="w-10 h-10 text-white" />
+                )}
               </div>
               {pressingType === 'lockdown' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
@@ -376,15 +404,22 @@ export function Home() {
               onMouseLeave={stopPress}
               onTouchStart={(e) => startPress(e, 'simulated')}
               onTouchEnd={stopPress}
-              className="relative group touch-none select-none"
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isTriggering !== null}
+              className="relative group touch-none select-none disabled:opacity-50"
               style={{ WebkitTapHighlightColor: 'transparent', WebkitUserSelect: 'none' }}
             >
               <div className={cn(
                 "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-200 shadow-lg",
                 "bg-gradient-to-br from-slate-500 to-slate-700",
-                pressingType === 'simulated' ? "scale-95" : "hover:scale-105"
+                pressingType === 'simulated' ? "scale-95" : "hover:scale-105",
+                isTriggering === 'simulated' && "animate-pulse"
               )}>
-                <Zap className="w-10 h-10 text-white" />
+                {isTriggering === 'simulated' ? (
+                  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Zap className="w-10 h-10 text-white" />
+                )}
               </div>
               {pressingType === 'simulated' && (
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">

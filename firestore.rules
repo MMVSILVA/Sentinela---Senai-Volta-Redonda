@@ -88,11 +88,11 @@ service cloud.firestore {
                (!data.keys().hasAny(['specificLocation']) || data.specificLocation is string || data.specificLocation == null);
       }
 
-      // Only registered users can read alerts
+      // All registered users must be able to see all alerts for safety
       allow get: if isSignedIn();
-      allow list: if isSignedIn() && resource.data.triggeredBy.id == request.auth.uid || isAdmin(); 
+      allow list: if isSignedIn(); 
       
-      allow create: if isEmailVerified() && isValidAlert(incoming()) && 
+      allow create: if isSignedIn() && isValidAlert(incoming()) && 
                     incoming().triggeredBy.id == request.auth.uid &&
                     incoming().active == true;
       

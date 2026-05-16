@@ -119,21 +119,42 @@ async function startServer() {
   app.post("/api/notify", async (req, res) => {
     const { tokens, title, body, data } = req.body;
     
+    console.log(`[Notification] Recebida solicitação de envio: "${title}" para ${tokens?.length || 0} tokens.`);
+
     if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+      console.warn("[Notification] Nenhum token válido recebido.");
       return res.status(400).json({ error: "No tokens provided" });
     }
 
     try {
-      const message = {
-        notification: { title, body },
-        data: data || {},
-        tokens: tokens,
-      };
+      // FCM sendEachForMulticast tem limite de 500 tokens por chamada
+      const CHUNK_SIZE = 500;
+      const results = [];
+      
+      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+        const chunk = tokens.slice(i, i + CHUNK_SIZE);
+        const message = {
+          notification: { title, body },
+          data: data || {},
+          tokens: chunk,
+        };
+        const response = await admin.messaging().sendEachForMulticast(message);
+        results.push(response);
+      }
 
-      const response = await admin.messaging().sendEachForMulticast(message);
-      res.json({ success: true, response });
+      const totalSuccess = results.reduce((acc, r) => acc + r.successCount, 0);
+      const totalFailure = results.reduce((acc, r) => acc + r.failureCount, 0);
+      
+      console.log(`[Notification] Resultado acumulado: ${totalSuccess} sucessos, ${totalFailure} falhas.`);
+      
+      res.json({ 
+        success: true, 
+        totalSuccess, 
+        totalFailure,
+        responses: results.flatMap(r => r.responses) 
+      });
     } catch (error) {
-      console.error("FCM Send error:", error);
+      console.error("[Notification] Erro fatal ao enviar FCM:", error);
       res.status(500).json({ error: "Failed to send notifications" });
     }
   });

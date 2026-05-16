@@ -9,7 +9,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { currentTab, setTab, user } = useStore();
+  const { currentTab, setTab, user, firebaseConnected } = useStore();
 
   const tabs = [
     { id: 'home', label: 'Início', icon: HomeIcon },
@@ -24,13 +24,21 @@ export function Layout({ children }: LayoutProps) {
   const isChat = currentTab === 'community';
 
   return (
-    <div className="h-screen bg-slate-900 flex flex-col font-sans overflow-hidden">
+    <div className="h-screen h-[100dvh] bg-slate-900 flex flex-col font-sans overflow-hidden">
+      {!firebaseConnected && (
+        <div className="bg-red-600 text-white text-[10px] py-1 px-4 text-center font-bold animate-pulse z-[100]">
+          SEM CONEXÃO COM O SERVIDOR - MODO OFFLINE ATIVADO
+        </div>
+      )}
       <NotificationManager />
-      <main className={cn("flex-1 relative", !isChat && "overflow-y-auto pb-48")}>
+      <main className={cn(
+        "flex-1 relative min-h-0", 
+        !isChat && "overflow-y-auto"
+      )}>
         {children}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-3 py-2 z-50 backdrop-blur-lg bg-opacity-95 shadow-2xl">
+      <nav className="bg-[#0f172a] border-t border-slate-800 px-3 py-2 z-50 shrink-0 pb-[env(safe-area-inset-bottom)]">
         <ul className="flex items-center justify-between max-w-lg mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;

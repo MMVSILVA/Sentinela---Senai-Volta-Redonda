@@ -231,7 +231,7 @@ export function CommunityChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative pb-20">
+    <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden relative">
       {/* Header */}
       <div className="p-4 bg-[#202c33] flex items-center gap-3 shadow-md z-20 border-b border-white/5 shrink-0">
         <div className="bg-blue-600 p-2.5 rounded-full shadow-lg">
@@ -405,7 +405,7 @@ export function CommunityChat() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="px-4 py-2 bg-[#202c33] border-t border-white/5 flex gap-4 overflow-x-auto no-scrollbar"
+            className="px-4 py-2 bg-[#202c33] border-t border-white/5 flex gap-4 overflow-x-auto scrollbar-hide shrink-0"
           >
             <button 
               onClick={() => applyFormatting('**', '**')}
@@ -448,10 +448,10 @@ export function CommunityChat() {
       <AnimatePresence>
         {imagePreview && (
           <motion.div 
-            initial={{ y: 100, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-[80px] left-4 right-4 bg-[#2a3942] rounded-xl p-3 shadow-2xl z-20 border border-white/10"
+            exit={{ y: 20, opacity: 0 }}
+            className="absolute bottom-full mb-2 left-4 right-4 bg-[#2a3942] rounded-xl p-3 shadow-2xl z-20 border border-white/10"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-[#8696a0] font-medium">Visualização da Imagem</span>
@@ -472,10 +472,10 @@ export function CommunityChat() {
         {showAttachmentMenu && (
           <motion.div 
             ref={attachmentMenuRef}
-            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            initial={{ y: 10, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 20, opacity: 0, scale: 0.95 }}
-            className="absolute bottom-[85px] left-8 bg-[#233138] rounded-xl shadow-2xl z-50 p-4 border border-white/10 min-w-[200px]"
+            exit={{ y: 10, opacity: 0, scale: 0.95 }}
+            className="absolute bottom-full mb-4 left-8 bg-[#233138] rounded-xl shadow-2xl z-50 p-4 border border-white/10 min-w-[200px]"
           >
             <div className="grid grid-cols-1 gap-1">
               {attachmentOptions.map((opt) => (
@@ -500,10 +500,10 @@ export function CommunityChat() {
         {showEmojiPicker && (
           <motion.div 
             ref={emojiPickerRef}
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            className="absolute bottom-[85px] left-4 z-30 shadow-2xl"
+            exit={{ y: 10, opacity: 0 }}
+            className="absolute bottom-full mb-4 left-4 z-30 shadow-2xl"
           >
             <EmojiPicker 
               onEmojiClick={onEmojiClick} 
@@ -517,13 +517,14 @@ export function CommunityChat() {
       </AnimatePresence>
 
       {/* Input */}
-      <div className="p-3 bg-[#202c33] flex flex-col gap-2 z-20">
-        {errorId && (
-          <div className="text-[10px] text-red-500 font-black px-4 animate-pulse text-center uppercase tracking-tighter">
-            {errorId}
-          </div>
-        )}
-        <div className="flex items-end gap-2 max-w-5xl mx-auto w-full">
+      <div className="p-3 bg-[#202c33] shrink-0 relative">
+        <div className="flex flex-col gap-2 relative">
+          {errorId && (
+            <div className="text-[10px] text-red-500 font-black px-4 animate-pulse text-center uppercase tracking-tighter mb-1">
+              {errorId}
+            </div>
+          )}
+          <div className="flex items-end gap-2 max-w-5xl mx-auto w-full">
           <div className="flex items-center gap-1 bg-[#2a3942] rounded-2xl flex-1 px-2 py-1 shadow-inner border border-white/5">
             <button
               type="button"
@@ -586,7 +587,8 @@ export function CommunityChat() {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 

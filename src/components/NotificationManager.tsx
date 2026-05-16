@@ -14,18 +14,25 @@ export function NotificationManager() {
       const unsubCommunity = subscribeToCommunityMessages();
       
       // Handle FCM Token registration
-      if (!hasRequestedPermission.current && 'Notification' in window) {
-        if (Notification.permission === 'default') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              updateFCMToken();
-            }
-          });
-        } else if (Notification.permission === 'granted') {
-          updateFCMToken();
+      const handleTokenUpdate = async () => {
+        if (!('Notification' in window)) return;
+        
+        if (Notification.permission === 'granted') {
+          try {
+            await updateFCMToken();
+          } catch (err) {
+            console.error("Token update failed in manager:", err);
+          }
+        } else if (Notification.permission === 'default' && !hasRequestedPermission.current) {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            await updateFCMToken();
+          }
+          hasRequestedPermission.current = true;
         }
-        hasRequestedPermission.current = true;
-      }
+      };
+
+      handleTokenUpdate();
 
       return () => {
         unsubEvents();

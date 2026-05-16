@@ -306,7 +306,7 @@ Informamos que o aplicativo Sentinela acaba de receber novas atualizações de s
   };
 
   return (
-    <div className="p-4 sm:p-6 bg-[#0B0E14] min-h-screen text-slate-200">
+    <div className="p-4 sm:p-6 bg-[#0B0E14] min-h-full text-slate-200">
       <header className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-800/50 pb-6 relative overflow-hidden">
         <div className="flex items-center gap-3 sm:gap-4 z-10">
           <Logo size="lg" className="shadow-blue-500/20 shrink-0" />

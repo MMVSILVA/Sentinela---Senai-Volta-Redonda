@@ -89,6 +89,7 @@ interface AppState {
   localUsers: (User & { password?: string })[];
   initialized: boolean;
   isLoading: boolean;
+  firebaseConnected: boolean;
   
   init: () => void;
   login: (email: string, pass: string) => Promise<void>;
@@ -169,6 +170,7 @@ export const useStore = create<AppState>()(
       }],
       initialized: false,
       isLoading: false,
+      firebaseConnected: true,
 
       init: () => {
         if (get().initialized) return;
@@ -204,7 +206,7 @@ export const useStore = create<AppState>()(
                     role: isAdminEmail ? 'admin' : (userData.role || 'user')
                   } as User;
                   
-                  set({ user: sanitizedUser, initialized: true });
+                  set({ user: sanitizedUser, initialized: true, firebaseConnected: true });
 
                   // Subscribe to alerts ONLY when user is authenticated
                   if (!unsubscribeAlerts) {
@@ -213,19 +215,25 @@ export const useStore = create<AppState>()(
                         id: doc.id,
                         ...doc.data()
                       })) as Alert[];
-                      set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp) });
+                      set({ alerts: alerts.sort((a, b) => b.timestamp - a.timestamp), firebaseConnected: true });
                     }, (error) => {
                       console.error("Alerts sync error:", error);
+                      if (error.code === 'unavailable') {
+                        set({ firebaseConnected: false });
+                      }
                       if (error.code !== 'permission-denied') {
                         handleFirestoreError(error, OperationType.GET, 'alerts');
                       }
                     });
                   }
                 } else {
-                  set({ user: null, initialized: true });
+                  set({ user: null, initialized: true, firebaseConnected: true });
                 }
               }, (error) => {
                 console.error("User document sync error:", error);
+                if (error.code === 'unavailable') {
+                  set({ firebaseConnected: false });
+                }
                 set({ initialized: true });
                 handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
               });
@@ -234,7 +242,7 @@ export const useStore = create<AppState>()(
             }
           });
         } else {
-          set({ initialized: true });
+          set({ initialized: true, firebaseConnected: false });
         }
       },
 
@@ -323,6 +331,8 @@ export const useStore = create<AppState>()(
         const { user } = get();
         if (!user || !isFirebaseConfigured || !db) return;
 
+        console.log(`Triggering alert: ${type} at ${specificLocation || 'Unknown'}`);
+
         const triggererSnapshot = {
           id: user.id,
           name: user.name,
@@ -342,6 +352,7 @@ export const useStore = create<AppState>()(
 
         try {
           const docRef = await addDoc(collection(db, 'alerts'), alertData);
+          console.log(`Alert created with ID: ${docRef.id}`);
           
           const alertLabels: Record<string, string> = {
             'emergency': '🚨 EMERGÊNCIA GERAL',
@@ -351,7 +362,8 @@ export const useStore = create<AppState>()(
             'lockdown': '🔒 LOCKDOWN'
           };
 
-          await get().notifyAllUsers(
+          // Não esperamos o término das notificações para liberar a UI
+          get().notifyAllUsers(
             alertLabels[type] || '⚠️ ALERTA DE SEGURANÇA',
             `ALERTA por ${user.name} em ${specificLocation || 'Local não especificado'}`,
             { 
@@ -360,11 +372,13 @@ export const useStore = create<AppState>()(
               tag: 'sentinela-alert',
               userName: user.name
             }
-          );
+          ).catch(err => console.error("Async notification failed:", err));
+          
+          return;
         } catch (error) {
           console.error("Trigger Alert Error:", error);
           handleFirestoreError(error, OperationType.WRITE, 'alerts');
-          throw error; // Rethrow to handle in UI
+          throw error;
         }
       },
 
@@ -688,7 +702,8 @@ export const useStore = create<AppState>()(
             vapidKey: 'BB4eB9o28YRgjkxnaiXRwtxMfzQS4-guBjzoKln6CoN0tTxjWgY9Hl8dk-iB7obMW9KIufIOi_3W8ttH4s1-xdc' 
           });
 
-          if (token && token !== user.fcmToken) {
+          if (token) {
+            console.log("FCM Token obtido/atualizado.");
             await updateDoc(doc(db, 'users', user.id), { fcmToken: token });
             set(state => ({ user: state.user ? { ...state.user, fcmToken: token } : null }));
           }
@@ -701,30 +716,50 @@ export const useStore = create<AppState>()(
         if (!isFirebaseConfigured || !db) return;
         
         try {
+          // Busca apenas usuários que possuem token configurado
           const usersSnapshot = await getDocs(collection(db, 'users'));
-          const tokens = usersSnapshot.docs
-            .map(d => (d.data() as User).fcmToken)
-            .filter(t => !!t && t !== get().user?.fcmToken);
-
-          if (tokens.length === 0) return;
-
-          console.log(`Disparando notificações para ${tokens.length} dispositivos...`);
+          const currentUserId = get().user?.id;
           
-          await fetch('/api/notify', {
+          const tokens = usersSnapshot.docs
+            .map(d => d.data() as User)
+            .filter(u => u.fcmToken && u.id !== currentUserId)
+            .map(u => u.fcmToken!);
+
+          // Remove tokens duplicados para evitar spam e gastar cota
+          const uniqueTokens = Array.from(new Set(tokens));
+
+          if (uniqueTokens.length === 0) {
+            console.log("Nenhum destinatário com token encontrado.");
+            return;
+          }
+
+          console.log(`Disparando notificações para ${uniqueTokens.length} dispositivos únicos...`);
+          
+          const response = await fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              tokens,
+              tokens: uniqueTokens,
               title,
               body,
               data: {
                 ...data,
-                click_action: window.location.origin
+                click_action: window.location.origin,
+                timestamp: Date.now().toString()
               }
-            })
+            }),
+            // Timeout de 10 segundos para não travar infinitamente
+            signal: AbortSignal.timeout(10000)
           });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            console.error("Erro na API de notificação:", errData);
+          } else {
+            console.log("Notificações enviadas com sucesso para a API.");
+          }
         } catch (error) {
-          console.error("Failed to fetch tokens or send notification:", error);
+          console.error("Falha ao preparar ou enviar notificações:", error);
         }
       },
 
